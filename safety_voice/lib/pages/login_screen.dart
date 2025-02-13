@@ -16,53 +16,74 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Future<void> _login() async {
+  //   setState(() {
+  //     _isLoading = true;
+  //     _errorMessage = null;
+  //   });
+
+  //   final String username = _usernameController.text.trim();
+  //   final String password = _passwordController.text.trim();
+
+  //   if (username.isEmpty || password.isEmpty) {
+  //     setState(() {
+  //       _errorMessage = '아이디와 비밀번호를 입력하세요.';
+  //       _isLoading = false;
+  //     });
+  //     return;
+  //   }
+
+  //   final Uri url = Uri.parse('http://10.0.2.2:8000/api/auth/login/');
+  //   final response = await http.post(
+  //     url,
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: jsonEncode({'username': username, 'password': password}),
+  //   );
+
+  //   if (response.statusCode == 200) {
+  //     final data = jsonDecode(response.body);
+  //     final token = data['token'];
+
+  //     // 토큰 저장
+  //     final prefs = await SharedPreferences.getInstance();
+  //     await prefs.setString('token', token);
+
+  //     // 로그인 성공 시 이동
+  //     if (mounted) {
+  //       Navigator.pushReplacementNamed(context, '/calendarhome');
+  //     }
+  //   } else {
+  //     final data = jsonDecode(response.body);
+  //     setState(() {
+  //       _errorMessage = '아이디/비밀번호가 틀렸습니다.';
+  //     });
+  //   }
+
+  //   setState(() {
+  //     _isLoading = false;
+  //   });
+  // }
+  
   Future<void> _login() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  setState(() {
+    _isLoading = true;
+    _errorMessage = null;
+  });
 
-    final String username = _usernameController.text.trim();
-    final String password = _passwordController.text.trim();
+  // 아이디와 비밀번호 확인 없이 바로 로그인 성공 처리
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('token', 'dummy_token'); // 더미 토큰 저장
 
-    if (username.isEmpty || password.isEmpty) {
-      setState(() {
-        _errorMessage = '아이디와 비밀번호를 입력하세요.';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    final Uri url = Uri.parse('http://10.0.2.2:8000/api/auth/login/');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final token = data['token'];
-
-      // 토큰 저장
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', token);
-
-      // 로그인 성공 시 이동
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/calendarhome');
-      }
-    } else {
-      final data = jsonDecode(response.body);
-      setState(() {
-        _errorMessage = '아이디/비밀번호가 틀렸습니다.';
-      });
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
+  // 로그인 버튼을 누르면 바로 다음 화면으로 이동
+  if (mounted) {
+    Navigator.pushReplacementNamed(context, '/calendarhome');
   }
+
+  setState(() {
+    _isLoading = false;
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {

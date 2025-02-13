@@ -24,10 +24,16 @@ class _NonamedState extends State<Nonamed> {
   }
 
   // 📌 오디오 길이 가져오기 함수
-  Future<String> getAudioDuration(String filePath) async {
+  Future<String> _getAudioDuration(String filePath, bool isAsset) async {
     try {
       final player = AudioPlayer();
-      await player.setSource(AssetSource(filePath.replaceFirst("assets/", "")));
+
+      if (isAsset) {
+        await player.setSource(AssetSource(filePath.replaceFirst("assets/", "")));
+      } else {
+        await player.setSource(DeviceFileSource(filePath)); // ✅ 내부 저장소 파일도 지원
+      }
+
       Duration? duration = await player.getDuration();
       return _formatDuration(duration ?? Duration.zero);
     } catch (e) {
@@ -36,22 +42,49 @@ class _NonamedState extends State<Nonamed> {
     }
   }
 
-  // 📌 파일 리스트 자동 불러오기 + 오디오 길이 추가
+  // 📌 기존 assets 파일 + 내부 저장소 녹음 파일 불러오기
   Future<void> _loadAudioFiles() async {
     try {
-      final assetPaths = ["assets/m4a/test.m4a", "assets/m4a/Bok_badara.m4a", "assets/m4a/test11.m4a"];
       List<Map<String, dynamic>> files = [];
 
+      // ✅ 1. Assets 파일 추가
+      final assetPaths = ["assets/m4a/test.m4a", "assets/m4a/Bok_badara.m4a", "assets/m4a/test11.m4a"];
       for (var path in assetPaths) {
         ByteData data = await rootBundle.load(path);
-        String duration = await getAudioDuration(path);
+        String duration = await _getAudioDuration(path, true); // ✅ asset 파일도 길이 측정
 
         files.add({
-          "name": path.split('/').last, // 파일명
+          "name": path.split('/').last,
           "path": path,
           "size": data.lengthInBytes,
-          "duration": duration, // 🔹 오디오 길이 추가
+          "duration": duration,
+          "isAsset": true,
         });
+      }
+
+      // ✅ 2. 내부 저장소에서 녹음 파일 리스트 불러오기
+      final dir = await getApplicationDocumentsDirectory();
+      final recordingListFile = File('${dir.path}/recording_list.txt');
+
+      if (await recordingListFile.exists()) {
+        List<String> savedFiles = await recordingListFile.readAsLines();
+        for (var filePath in savedFiles) {
+          final file = File(filePath);
+          if (await file.exists()) {
+            int fileSize = await file.length();
+            String duration = await _getAudioDuration(filePath, false); // ✅ 내부 저장소 파일 길이 측정
+
+            files.add({
+              "name": file.path.split('/').last,
+              "path": file.path,
+              "size": fileSize,
+              "duration": duration, // ✅ 길이 정보 업데이트
+              "isAsset": false,
+            });
+
+            print("📌 추가된 녹음 파일: $filePath, 길이: $duration");
+          }
+        }
       }
 
       setState(() {
@@ -78,18 +111,18 @@ class _NonamedState extends State<Nonamed> {
   }
 
   // 📌 오디오 재생 및 정지 기능
-  Future<void> _togglePlayback(String filePath) async {
+  Future<void> _togglePlayback(String filePath, bool isAsset) async {
     try {
       if (_currentPlayingFile == filePath) {
         await _audioPlayer.stop();
-        setState(() {
-          _currentPlayingFile = null;
-        });
+        setState(() => _currentPlayingFile = null);
       } else {
-        await _audioPlayer.play(AssetSource(filePath.replaceFirst("assets/", "")));
-        setState(() {
-          _currentPlayingFile = filePath;
-        });
+        if (isAsset) {
+          await _audioPlayer.play(AssetSource(filePath.replaceFirst("assets/", "")));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(filePath));
+        }
+        setState(() => _currentPlayingFile = filePath);
       }
     } catch (e) {
       print('🚨 오디오 재생 오류: $e');
@@ -101,8 +134,7 @@ class _NonamedState extends State<Nonamed> {
     _audioPlayer.dispose();
     super.dispose();
   }
-
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -130,16 +162,18 @@ class _NonamedState extends State<Nonamed> {
         ),
       ),
 
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: Column(
-          children: [
-            for (var file in audioFiles) _buildAudioFileContainer(file),
-          ],
+      // 스크롤 기능
+      body: Scrollbar(
+        child: ListView.builder(
+          itemCount: audioFiles.length,
+          itemBuilder: (context, index) {
+            return _buildAudioFileContainer(audioFiles[index]);
+          },
         ),
       ),
     );
   }
+
 
   // 오디오 파일 컨테이너 생성
   Widget _buildAudioFileContainer(Map<String, dynamic> file) {
@@ -150,7 +184,7 @@ class _NonamedState extends State<Nonamed> {
           height: 99.0,
           color: Colors.transparent,
           child: GestureDetector(
-            onTap: () => _togglePlayback(file["path"]),
+            onTap: () => _togglePlayback(file["path"], file["isAsset"]),
             child: Align(
               alignment: Alignment.topLeft,
               child: Container(
