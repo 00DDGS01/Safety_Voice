@@ -98,3 +98,29 @@ def login_view(request):
             {'error': '아이디 또는 비밀번호가 올바르지 않습니다.'},
             status=status.HTTP_401_UNAUTHORIZED
         )
+
+import whisper
+import os
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+
+@csrf_exempt
+def transcribe_audio(request):
+    if request.method == 'POST' and request.FILES.get('audio'):
+        audio_file = request.FILES['audio']
+        file_path = default_storage.save('uploads/' + audio_file.name, audio_file)
+
+        # Whisper 모델 로드
+        model = whisper.load_model("base")
+
+        # 오디오 파일 변환 및 STT 수행
+        result = model.transcribe(file_path)
+        text = result["text"]
+
+        # 파일 삭제
+        os.remove(file_path)
+
+        return JsonResponse({'text': text}, status=200)
+    
+    return JsonResponse({'error': 'Invalid request'}, status=400)
