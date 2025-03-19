@@ -1,2 +1,6 @@
 myvenv/
+<<<<<<< HEAD
 db.sqlite3
+=======
+.DS_Store
+>>>>>>> main
