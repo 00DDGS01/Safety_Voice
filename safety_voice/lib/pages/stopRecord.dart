@@ -46,11 +46,11 @@ class _StopRecordState extends State<StopRecord> {
         throw Exception('Recorder is not initialized');
       final dir = await getApplicationDocumentsDirectory();
       _filePath =
-          '${dir.path}/${DateFormat('yyyyMMddHHmm').format(DateTime.now())}.waf';
+          '${dir.path}/${DateFormat('yyyyMMddHHmm').format(DateTime.now())}.mp4';
 
       await _recorder.startRecorder(
         toFile: _filePath,
-        codec: Codec.pcm16WAV,
+        codec: Codec.aacMP4,
       );
 
       print("🎤 녹음 시작됨: $_filePath");

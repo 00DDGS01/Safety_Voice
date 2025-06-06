@@ -21,6 +21,8 @@ Future<String> summarizeWithGPT(String transcript) async {
     }),
   );
 
+  print('GPT 응답 원문 : ${response.body}');
+
   if (response.statusCode == 200) {
     final data = jsonDecode(response.body);
     return data['choices'][0]['message']['content'];
