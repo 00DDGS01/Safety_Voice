@@ -21,12 +21,13 @@ Future<String> summarizeWithGPT(String transcript) async {
     }),
   );
 
-  print('GPT 응답 원문 : ${response.body}');
+  final decodedBody = utf8.decode(response.bodyBytes); // ✅ 디코딩
+  print('📩 GPT 응답 원문: $decodedBody');
 
   if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
+    final data = jsonDecode(decodedBody); // ✅ 디코딩된 문자열로 JSON 파싱
     return data['choices'][0]['message']['content'];
   } else {
-    throw Exception('GPT 오류: ${response.body}');
+    throw Exception('GPT 오류: $decodedBody');
   }
 }

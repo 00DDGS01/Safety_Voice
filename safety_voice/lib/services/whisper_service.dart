@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:safety_voice/utils/secrets.dart';
 
@@ -17,13 +16,14 @@ Future<String> transcribeWithWhisper(File audioFile) async {
   final streamedResponse = await request.send();
   final response = await http.Response.fromStream(streamedResponse);
 
-  print('🔈 Whisper 응답 전체: ${response.body}'); // 여기 추가
+  final decodedBody = utf8.decode(response.bodyBytes); // ✅ UTF-8로 디코딩
+  print('🔈 Whisper 응답 전체: $decodedBody');
 
   if (response.statusCode == 200) {
-    final result = jsonDecode(response.body);
-    print('📝 Whisper 텍스트: ${result['text']}'); // 실제 텍스트 필드만 출력
+    final result = jsonDecode(decodedBody); // ✅ 디코딩된 body로 파싱
+    print('📝 Whisper 텍스트: ${result['text']}');
     return result['text'];
   } else {
-    throw Exception('Whisper 오류: ${response.body}');
+    throw Exception('Whisper 오류: $decodedBody');
   }
 }
