@@ -13,12 +13,33 @@ class Nonamed extends StatefulWidget {
 }
 
 class _NonamedState extends State<Nonamed> {
+    String? _selectedFolder; // ✅ 드롭다운에서 선택된 폴더 이름을 저장하는 변수
+   Future<List<String>> _loadFolderNames() async {
+  final dir = await getApplicationDocumentsDirectory();
+  final file = File('${dir.path}/created_folders.txt');
+  
+
+  if (!await file.exists()) 
+  {
+    print("X created.txt없음");
+    return [];
+  }
+
+  final lines = await file.readAsLines();
+  final folderNames = <String>{};
+  for (var line in lines) {
+    folderNames.add(line.trim());
+  }
+  return folderNames.toList();
+}
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentPlayingFile;
   List<Map<String, dynamic>> audioFiles = [];
 
   @override
+  
   void initState() {
+    
     super.initState();
     _loadAudioFiles();
   }
@@ -233,23 +254,40 @@ class _NonamedState extends State<Nonamed> {
                                 showDialog(
                                   context: context,
                                   builder: (context) {
-                                    TextEditingController titleController = TextEditingController();
-                                    TextEditingController descController = TextEditingController();
-
                                     return AlertDialog(
                                       title: const Text("사건 파일로 저장"),
-                                      content: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          TextField(
-                                            controller: titleController,
-                                            decoration: const InputDecoration(labelText: "제목"),
-                                          ),
-                                          TextField(
-                                            controller: descController,
-                                            decoration: const InputDecoration(labelText: "설명"),
-                                          ),
-                                        ],
+                                      content: StatefulBuilder( // ✅ 이거 추가
+                                        builder: (context, setStateSB) {
+                                          return Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              FutureBuilder<List<String>>(
+                                                future: _loadFolderNames(),
+                                                builder: (context, snapshot) {
+                                                  if (!snapshot.hasData) {
+                                                    return const CircularProgressIndicator();
+                                                  }
+                                                  final folderNames = snapshot.data!;
+                                                  return DropdownButtonFormField<String>(
+                                                    value: _selectedFolder,
+                                                    decoration: const InputDecoration(labelText: "폴더 선택"),
+                                                    items: folderNames.map((name) {
+                                                      return DropdownMenuItem<String>(
+                                                        value: name,
+                                                        child: Text(name),
+                                                      );
+                                                    }).toList(),
+                                                    onChanged: (value) {
+                                                      setStateSB(() { // ✅ 여기선 StatefulBuilder의 setState 사용
+                                                        _selectedFolder = value;
+                                                      });
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       ),
                                       actions: [
                                         TextButton(
@@ -258,10 +296,19 @@ class _NonamedState extends State<Nonamed> {
                                         ),
                                         TextButton(
                                           onPressed: () async {
+                                            if (_selectedFolder == null || _selectedFolder!.isEmpty) return;
+
                                             final dir = await getApplicationDocumentsDirectory();
-                                            final promotedFile = File('${dir.path}/promoted_files.txt');
-                                            final line = "${file["path"]}###${titleController.text}###${descController.text}\n";
-                                            await promotedFile.writeAsString(line, mode: FileMode.append);
+                                            final folderDir = Directory('${dir.path}/$_selectedFolder');
+                                            if (!await folderDir.exists()) {
+                                              await folderDir.create(recursive: true);
+                                            }
+
+                                            final srcFile = File(file['path']);
+                                            final fileName = srcFile.path.split('/').last;
+                                            final newPath = '${folderDir.path}/$fileName';
+                                            await srcFile.copy(newPath);
+
                                             Navigator.pop(context);
                                           },
                                           child: const Text("저장"),
@@ -271,6 +318,7 @@ class _NonamedState extends State<Nonamed> {
                                   },
                                 );
                               },
+                              
                               child: const Text("이동", style: TextStyle(fontSize: 12, color: Colors.grey)),
                             ),
                             const SizedBox(width: 8),

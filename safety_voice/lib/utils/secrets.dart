@@ -1,0 +1,2 @@
+const String openAiApiKey =
+    "sk-proj-'86z23hwgew_8W4UJjgxQlaZXASpMKu-PotONGbwrctk95sYf97XajFSANlyg_kqEMXfGtl8LkGT3BlbkFJpApBGUE9Eq2LWnDxDUvZPAajDAHvyjQGuLPxOE4_oCA2-WVlwMjwFDRRbDxpgrZS_auJewjfcA";
