@@ -11,3 +11,9 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# android/local.properties
+local.properties
+
+# .gitignore 맨 아래에 추가
+android/app/src/main/AndroidManifest.xml

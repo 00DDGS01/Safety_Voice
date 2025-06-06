@@ -1000,23 +1000,25 @@ Widget buildLocationRow(String label, String hint) {
       ),
       const SizedBox(width: 8),
       TextButton(
-        onPressed: () {},
-        style: TextButton.styleFrom(
-          backgroundColor: const Color(0xFFD9D9D9),
-          minimumSize: const Size(67, 27),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
-          padding: EdgeInsets.zero,
-        ),
-        child: const Text(
-          '주소 검색',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 15,
-          ),
-        ),
-      ),
+  onPressed: () {
+    Navigator.pushNamed(context, '/mapscreen');
+  },
+  style: TextButton.styleFrom(
+    backgroundColor: const Color(0xFFD9D9D9),
+    minimumSize: const Size(67, 27),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(4),
+    ),
+    padding: EdgeInsets.zero,
+  ),
+  child: const Text(
+    '주소 검색',
+    style: TextStyle(
+      color: Colors.black,
+      fontSize: 15,
+    ),
+  ),
+),
     ],
   );
 }
