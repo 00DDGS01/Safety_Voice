@@ -225,12 +225,15 @@ class _NonamedState extends State<Nonamed> {
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.start,
-                          children: const [
-                            Text("추가", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                            SizedBox(width: 8),
-                            Text("수정", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                            SizedBox(width: 8),
-                            Text("삭제", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          children: [
+                            const Text("추가", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            const SizedBox(width: 8),
+                            const Text("수정", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => _deleteAudioFile(file),
+                              child: const Text("삭제", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -252,4 +255,31 @@ class _NonamedState extends State<Nonamed> {
   }
 
 
+  Future<void> _deleteAudioFile(Map<String, dynamic> file) async {
+    try {
+      final audioFile = File(file["path"]);
+      if (await audioFile.exists()) {
+        await audioFile.delete();
+      }
+
+      // Update the recording list file
+      final dir = await getApplicationDocumentsDirectory();
+      final recordingListFile = File('${dir.path}/recording_list.txt');
+      if (await recordingListFile.exists()) {
+        List<String> updatedList = await recordingListFile.readAsLines();
+        updatedList.remove(file["path"]);
+        await recordingListFile.writeAsString(updatedList.join('\n'));
+      }
+
+      // Refresh UI
+      setState(() {
+        audioFiles.remove(file);
+        if (_currentPlayingFile == file["path"]) {
+          _currentPlayingFile = null;
+        }
+      });
+    } catch (e) {
+      print("🚨 삭제 중 오류 발생: $e");
+    }
+  }
 }
