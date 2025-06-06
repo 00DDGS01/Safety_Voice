@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:safety_voice/services/gpt_service.dart';
+import 'package:safety_voice/services/whisper_service.dart';
 import 'dart:typed_data';
+import 'package:safety_voice/utils/secrets.dart';
 
 class Nonamed extends StatefulWidget {
   const Nonamed({super.key});
@@ -29,7 +33,8 @@ class _NonamedState extends State<Nonamed> {
       final player = AudioPlayer();
 
       if (isAsset) {
-        await player.setSource(AssetSource(filePath.replaceFirst("assets/", "")));
+        await player
+            .setSource(AssetSource(filePath.replaceFirst("assets/", "")));
       } else {
         await player.setSource(DeviceFileSource(filePath)); // ✅ 내부 저장소 파일도 지원
       }
@@ -57,7 +62,8 @@ class _NonamedState extends State<Nonamed> {
           final file = File(filePath);
           if (await file.exists()) {
             int fileSize = await file.length();
-            String duration = await _getAudioDuration(filePath, false); // ✅ 내부 저장소 파일 길이 측정
+            String duration =
+                await _getAudioDuration(filePath, false); // ✅ 내부 저장소 파일 길이 측정
 
             files.add({
               "name": file.path.split('/').last,
@@ -79,7 +85,6 @@ class _NonamedState extends State<Nonamed> {
       print("🚨 파일 불러오기 오류: $e");
     }
   }
-
 
   // 📌 시간 형식 변환 함수
   String _formatDuration(Duration duration) {
@@ -104,7 +109,8 @@ class _NonamedState extends State<Nonamed> {
         setState(() => _currentPlayingFile = null);
       } else {
         if (isAsset) {
-          await _audioPlayer.play(AssetSource(filePath.replaceFirst("assets/", "")));
+          await _audioPlayer
+              .play(AssetSource(filePath.replaceFirst("assets/", "")));
         } else {
           await _audioPlayer.play(DeviceFileSource(filePath));
         }
@@ -120,7 +126,8 @@ class _NonamedState extends State<Nonamed> {
     _audioPlayer.dispose();
     super.dispose();
   }
-    @override
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -160,7 +167,6 @@ class _NonamedState extends State<Nonamed> {
     );
   }
 
-
   // 오디오 파일 컨테이너 생성
   Widget _buildAudioFileContainer(Map<String, dynamic> file) {
     return Column(
@@ -184,7 +190,9 @@ class _NonamedState extends State<Nonamed> {
                         ? Icons.pause_circle_filled
                         : Icons.play_circle_fill,
                     size: 36,
-                    color: _currentPlayingFile == file["path"] ? Colors.red : Colors.blue,
+                    color: _currentPlayingFile == file["path"]
+                        ? Colors.red
+                        : Colors.blue,
                   ),
                 ),
 
@@ -207,7 +215,8 @@ class _NonamedState extends State<Nonamed> {
                         const SizedBox(height: 4),
                         Text(
                           "시간: ${file["duration"]}",
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -226,20 +235,35 @@ class _NonamedState extends State<Nonamed> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            const Text("추가", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            const Text("추가",
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
                             const SizedBox(width: 8),
-                            const Text("수정", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            const Text("수정",
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
                             const SizedBox(width: 8),
                             GestureDetector(
                               onTap: () => _deleteAudioFile(file),
-                              child: const Text("삭제", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              child: const Text("삭제",
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 4),
                         Text(
                           "용량: ${getFileSize(file["size"])}",
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () => _summarizeWithGPT(file),
+                          child: const Text(
+                            "GPT로 요약하기",
+                            style: TextStyle(fontSize: 12, color: Colors.blue),
+                          ),
                         ),
                       ],
                     ),
@@ -249,11 +273,13 @@ class _NonamedState extends State<Nonamed> {
             ),
           ),
         ),
-        Container(width: double.infinity, height: 1.0, color: const Color(0xFFCACACA)),
+        Container(
+            width: double.infinity,
+            height: 1.0,
+            color: const Color(0xFFCACACA)),
       ],
     );
   }
-
 
   Future<void> _deleteAudioFile(Map<String, dynamic> file) async {
     try {
@@ -280,6 +306,57 @@ class _NonamedState extends State<Nonamed> {
       });
     } catch (e) {
       print("🚨 삭제 중 오류 발생: $e");
+    }
+  }
+
+  Future<void> _summarizeWithGPT(Map<String, dynamic> file) async {
+    // TODO: Whisper → GPT API 연동
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        title: Text('요약 중...'),
+        content: SizedBox(
+          height: 50,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+    );
+
+    try {
+      final transcript = await transcribeWithWhisper(File(file['path']));
+      final summary = await summarizeWithGPT(transcript);
+
+      Navigator.pop(context);
+
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('요약 결과'),
+          content: Text(summary),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('오류 발생'),
+          content: Text(e.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
     }
   }
 }
