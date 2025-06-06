@@ -12,8 +12,9 @@ import 'package:safety_voice/pages/calendarHome.dart';
 import 'package:safety_voice/pages/nonamed.dart';
 import 'package:safety_voice/pages/caseFile.dart';
 import 'package:safety_voice/pages/stopRecord.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
@@ -51,4 +52,8 @@ class MyApp extends StatelessWidget {
       },
     );
   }
+}
+
+Future<void> requestPermissions() async {
+  await Permission.microphone.request();
 }
