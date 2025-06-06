@@ -42,13 +42,15 @@ class _StopRecordState extends State<StopRecord> {
 
   Future<void> _startRecording() async {
     try {
-      if (!_isRecorderInitialized) throw Exception('Recorder is not initialized');
+      if (!_isRecorderInitialized)
+        throw Exception('Recorder is not initialized');
       final dir = await getApplicationDocumentsDirectory();
-      _filePath = '${dir.path}/${DateFormat('yyyyMMddHHmm').format(DateTime.now())}.aac';
+      _filePath =
+          '${dir.path}/${DateFormat('yyyyMMddHHmm').format(DateTime.now())}.mp4';
 
       await _recorder.startRecorder(
         toFile: _filePath,
-        codec: Codec.aacADTS,
+        codec: Codec.aacMP4,
       );
 
       print("🎤 녹음 시작됨: $_filePath");
@@ -76,7 +78,8 @@ class _StopRecordState extends State<StopRecord> {
       final dir = await getApplicationDocumentsDirectory();
       final recordingListFile = File('${dir.path}/recording_list.txt');
 
-      await recordingListFile.writeAsString('$filePath\n', mode: FileMode.append);
+      await recordingListFile.writeAsString('$filePath\n',
+          mode: FileMode.append);
       print("✅ 녹음 파일 저장됨: $filePath");
     } catch (e) {
       print("🚨 녹음 파일 저장 오류: $e");
@@ -112,7 +115,9 @@ class _StopRecordState extends State<StopRecord> {
                   height: _isRecording ? 220 : 200,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _isRecording ? Colors.red.withOpacity(0.8) : Colors.grey.withOpacity(0.5),
+                    color: _isRecording
+                        ? Colors.red.withOpacity(0.8)
+                        : Colors.grey.withOpacity(0.5),
                   ),
                   child: Center(
                     child: Icon(
@@ -135,27 +140,35 @@ class _StopRecordState extends State<StopRecord> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
                         backgroundColor: Colors.grey,
                       ),
                       child: const Text(
                         '뒤로가기',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
                       ),
                     ),
                     const SizedBox(width: 16),
                     ElevatedButton(
-                      onPressed: _isRecording ? _stopRecording : _startRecording,
+                      onPressed:
+                          _isRecording ? _stopRecording : _startRecording,
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                        backgroundColor: _isRecording ? Colors.red : Colors.green,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 30, vertical: 15),
+                        backgroundColor:
+                            _isRecording ? Colors.red : Colors.green,
                       ),
                       child: Text(
                         _isRecording ? 'Stop Recording' : 'Start Recording',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],

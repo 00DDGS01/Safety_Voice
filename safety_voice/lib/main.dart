@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart'; // ✅ 추가
+import 'package:safety_voice/pages/map_screen.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/signup_screen.dart';
 import 'package:safety_voice/pages/word_setting.dart';
@@ -13,7 +14,6 @@ import 'package:safety_voice/pages/calendarHome.dart';
 import 'package:safety_voice/pages/nonamed.dart';
 import 'package:safety_voice/pages/caseFile.dart';
 import 'package:safety_voice/pages/stopRecord.dart';
-import 'package:safety_voice/pages/map_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,4 +70,8 @@ class MyApp extends StatelessWidget {
       },
     );
   }
+}
+
+Future<void> requestPermissions() async {
+  await Permission.microphone.request();
 }
