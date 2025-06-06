@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:safety_voice/pages/caseFile.dart';
 //import 'package:path_provider/path_provider.dart';
 
 class ListHome extends StatelessWidget {
@@ -93,7 +94,17 @@ class ListHome extends StatelessWidget {
                                 height: 99.0,
                                 color: Colors.transparent,
                                 child: InkWell(
-                                  onTap: () => Navigator.pushNamed(context, '/casefile'),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CaseFile(
+                                          title: item['title'] ?? '제목 없음',
+                                          description: item['desc'] ?? '',
+                                        ),
+                                      ),
+                                    );
+                                  },
                                   child: Align(
                                     alignment: Alignment.topLeft,
                                     child: Container(

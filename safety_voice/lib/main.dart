@@ -46,7 +46,6 @@ class MyApp extends StatelessWidget {
         '/listhome': (context) => const ListHome(),
         '/calendarhome': (context) => const CalendarHome(),
         '/nonamed': (context) => const Nonamed(),
-        '/casefile': (context) => const CaseFile(),
         '/stoprecord': (context) => const StopRecord(),
       },
     );
