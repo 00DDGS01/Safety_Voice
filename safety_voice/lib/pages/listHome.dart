@@ -158,7 +158,7 @@ class ListHome extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            "사건 파일 추가",
+                            "사건 폴더 추가",
                             style: TextStyle(
                               fontSize: 24.0,
                               fontWeight: FontWeight.bold,

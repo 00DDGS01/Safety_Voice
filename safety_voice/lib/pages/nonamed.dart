@@ -271,7 +271,7 @@ class _NonamedState extends State<Nonamed> {
                                   },
                                 );
                               },
-                              child: const Text("수정", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              child: const Text("이동", style: TextStyle(fontSize: 12, color: Colors.grey)),
                             ),
                             const SizedBox(width: 8),
                             GestureDetector(
