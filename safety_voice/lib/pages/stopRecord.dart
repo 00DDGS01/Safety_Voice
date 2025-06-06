@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
+import 'package:safety_voice/services/trigger_listener.dart'; // ✅ TriggerListener 임포트
 
 class StopRecord extends StatefulWidget {
   const StopRecord({super.key});
@@ -21,7 +22,9 @@ class _StopRecordState extends State<StopRecord> {
   @override
   void initState() {
     super.initState();
-    _initRecorder();
+    _initRecorder().then((_) {
+      _startRecording();
+    });
   }
 
   Future<void> _initRecorder() async {
@@ -38,23 +41,22 @@ class _StopRecordState extends State<StopRecord> {
   }
 
   Future<void> _startRecording() async {
-  try {
-    if (!_isRecorderInitialized) throw Exception('Recorder is not initialized');
-    final dir = await getApplicationDocumentsDirectory();
-    _filePath = '${dir.path}/${DateFormat('yyyyMMddHHmm').format(DateTime.now())}.aac'; // ✅ AAC 형식으로 변경
+    try {
+      if (!_isRecorderInitialized) throw Exception('Recorder is not initialized');
+      final dir = await getApplicationDocumentsDirectory();
+      _filePath = '${dir.path}/${DateFormat('yyyyMMddHHmm').format(DateTime.now())}.aac';
 
-    await _recorder.startRecorder(
-      toFile: _filePath,
-      codec: Codec.aacADTS, // ✅ MP3 대신 AAC 사용
-    );
+      await _recorder.startRecorder(
+        toFile: _filePath,
+        codec: Codec.aacADTS,
+      );
 
-    print("🎤 녹음 시작됨: $_filePath");
-    setState(() => _isRecording = true);
-  } catch (e) {
-    print('🚨 Error starting recording: $e');
+      print("🎤 녹음 시작됨: $_filePath");
+      setState(() => _isRecording = true);
+    } catch (e) {
+      print('🚨 Error starting recording: $e');
+    }
   }
-}
-
 
   Future<void> _stopRecording() async {
     try {
@@ -62,14 +64,13 @@ class _StopRecordState extends State<StopRecord> {
       setState(() => _isRecording = false);
 
       if (_filePath != null) {
-        await _saveRecordingPath(_filePath!); // ✅ 녹음 파일 경로 저장
+        await _saveRecordingPath(_filePath!);
       }
     } catch (e) {
       print('🚨 Error stopping recording: $e');
     }
   }
 
-  // ✅ 녹음된 파일의 경로를 내부 저장소에 기록
   Future<void> _saveRecordingPath(String filePath) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -88,6 +89,10 @@ class _StopRecordState extends State<StopRecord> {
       _recorder.stopRecorder();
     }
     _recorder.closeRecorder();
+
+    // ✅ 녹음 종료 후 STT 재시작
+    TriggerListener().restart(context);
+
     super.dispose();
   }
 
@@ -122,7 +127,10 @@ class _StopRecordState extends State<StopRecord> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ElevatedButton(
-                      onPressed: () => Navigator.pushReplacementNamed(context, '/listhome'),
+                      onPressed: () {
+                        TriggerListener().restart(context); // ✅ 버튼으로도 STT 재시작
+                        Navigator.pushReplacementNamed(context, '/listhome');
+                      },
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
