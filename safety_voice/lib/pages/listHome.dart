@@ -1,9 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-//import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
-class ListHome extends StatelessWidget {
+class ListHome extends StatefulWidget {
   const ListHome({super.key});
+
+  @override
+  State<ListHome> createState() => _ListHomeState();
+}
+
+class _ListHomeState extends State<ListHome> {
+  List<String> _caseFolders = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCaseFolders();
+  }
+
+  Future<List<String>> getCaseFileFolders() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final casefilesDir = Directory('${dir.path}/casefiles');
+    if (!await casefilesDir.exists()) return [];
+    final subdirs = await casefilesDir.list().toList();
+    final folderNames = subdirs
+        .whereType<Directory>()
+        .map((d) => d.path.split(Platform.pathSeparator).last)
+        .where((name) => name.contains('사건 파일'))
+        .toList();
+    return folderNames;
+  }
+
+  Future<void> _loadCaseFolders() async {
+    final folders = await getCaseFileFolders();
+    setState(() {
+      _caseFolders = folders;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +76,6 @@ class ListHome extends StatelessWidget {
           ],
         ),
       ),
-
       body: Stack(
         children: [
           Align(
@@ -77,7 +110,7 @@ class ListHome extends StatelessWidget {
                     height: 1.0,
                     color: const Color(0xFFCACACA),
                   ),
-                  for (int i = 1; i <= 7; i++) ...[
+                  for (final folderName in _caseFolders) ...[
                     Container(
                       width: double.infinity,
                       height: 99.0,
@@ -87,9 +120,10 @@ class ListHome extends StatelessWidget {
                         child: Align(
                           alignment: Alignment.topLeft,
                           child: Container(
-                            margin: const EdgeInsets.only(top: 22.0, left: 15.0),
+                            margin:
+                                const EdgeInsets.only(top: 22.0, left: 15.0),
                             child: Text(
-                              '사건 파일 $i',
+                              folderName,
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 20.0,
@@ -176,10 +210,7 @@ class ListHome extends StatelessWidget {
                 height: 60,
               ),
             ),
-            
           ),
-
-          
           // 왼쪽 아래에 녹음 버튼 추가
           Positioned(
             bottom: 16.0,
@@ -202,7 +233,6 @@ class ListHome extends StatelessWidget {
           ),
         ],
       ),
-
       bottomNavigationBar: SizedBox(
         height: 70, // 하단바 세로 길이를 고정
         child: Material(
@@ -225,7 +255,7 @@ class ListHome extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                 onTap: () => Navigator.pushNamed(context, '/safezone'),
+                  onTap: () => Navigator.pushNamed(context, '/safezone'),
                   child: Container(
                     child: Image.asset(
                       'assets/images/wordRecognition.png',

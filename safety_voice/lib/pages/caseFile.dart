@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class CaseFile extends StatefulWidget {
   const CaseFile({super.key});
@@ -11,6 +12,42 @@ class CaseFile extends StatefulWidget {
 
 class _CaseFileState extends State<CaseFile> {
   bool _isExpanded = false; // 세부사항 표시 여부
+  List<File> caseFiles = [];
+
+  Future<void> moveFileToCaseFileDirectory(File sourceFile) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final caseFileDir = Directory('${dir.path}/casefiles');
+    if (!await caseFileDir.exists()) {
+      await caseFileDir.create(recursive: true);
+    }
+
+    final filename = sourceFile.uri.pathSegments.last;
+    final newPath = '${caseFileDir.path}/$filename';
+    final newFile = await sourceFile.copy(newPath);
+
+    print('✅ 사건파일 디렉토리 경로 : ${caseFileDir.path}');
+    print('✅ 이동 완료 : $newPath');
+  }
+
+  Future<void> loadCaseFiles() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final caseFileDir = Directory('${dir.path}/casefiles');
+    if (await caseFileDir.exists()) {
+      final files = caseFileDir.listSync().whereType<File>().where((file) {
+        final ext = file.path.split('.').last.toLowerCase();
+        return ['aac', 'wav', 'mp3'].contains(ext);
+      }).toList();
+      setState(() {
+        caseFiles = files;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadCaseFiles();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,9 +125,8 @@ class _CaseFileState extends State<CaseFile> {
                     child: const Text(
                       '수정',
                       style: TextStyle(
-                        fontSize: 16.0,
-                        color: Color(0xFF787878) // 텍스트 색상
-                      ),
+                          fontSize: 16.0, color: Color(0xFF787878) // 텍스트 색상
+                          ),
                     ),
                   ),
                 ],
@@ -142,6 +178,20 @@ class _CaseFileState extends State<CaseFile> {
               height: 1.0, // 실선 두께
               color: const Color(0xFFCACACA), // 실선 색상
             ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: caseFiles.length,
+                itemBuilder: (context, index) {
+                  final file = caseFiles[index];
+                  final filename = file.uri.pathSegments.last;
+                  return ListTile(
+                    leading: const Icon(Icons.audiotrack),
+                    title: Text(filename),
+                    subtitle: Text(file.path),
+                  );
+                },
+              ),
+            )
           ],
         ),
       ),

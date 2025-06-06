@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:safety_voice/pages/CaseFileSelectPage.dart';
 import 'package:safety_voice/services/gpt_service.dart';
 import 'package:safety_voice/services/whisper_service.dart';
 import 'dart:typed_data';
@@ -20,6 +21,44 @@ class _NonamedState extends State<Nonamed> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentPlayingFile;
   List<Map<String, dynamic>> audioFiles = [];
+
+  Future<void> _moveToCaseFile(Map<String, dynamic> file) async {
+    try {
+      final originalFile = File(file['path']);
+      final dir = await getApplicationDocumentsDirectory();
+      final caseDir = Directory('${dir.path}/casefiles');
+
+      if (!await caseDir.exists()) {
+        await caseDir.create(recursive: true);
+      }
+
+      final newPath = '${caseDir.path}/${originalFile.uri.pathSegments.last}';
+      final newFile = await originalFile.copy(newPath);
+
+      // 사건 파일 리스트에 추가
+      final caseListFile = File('${dir.path}/casefile_list.txt');
+      await caseListFile.writeAsString('$newPath\n', mode: FileMode.append);
+
+      print('✅ 사건파일로 이동 완료 : $newPath');
+
+      // 리스트에서 제거하고 UI 업데이트
+      final recordingListFile = File('${dir.path}/recording_list.txt');
+      if (await recordingListFile.exists()) {
+        List<String> updatedList = await recordingListFile.readAsLines();
+        updatedList.remove(file["path"]);
+        await recordingListFile.writeAsString(updatedList.join('\n'));
+      }
+
+      setState(() {
+        audioFiles.remove(file);
+        if (_currentPlayingFile == file["path"]) {
+          _currentPlayingFile = null;
+        }
+      });
+    } catch (e) {
+      print('🚨사건파일 이동 오류 : $e🚨');
+    }
+  }
 
   @override
   void initState() {
@@ -235,9 +274,18 @@ class _NonamedState extends State<Nonamed> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            const Text("추가",
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey)),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CaseFileSelectPage(
+                                        sourceFile: File(file['path'])),
+                                  ),
+                                );
+                              },
+                              child: const Text('사건 파일로 이동'),
+                            ),
                             const SizedBox(width: 8),
                             const Text("수정",
                                 style: TextStyle(
