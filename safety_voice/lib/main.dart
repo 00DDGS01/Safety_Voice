@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart'; // ✅ 추가
+import 'package:safety_voice/pages/map_screen.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/signup_screen.dart';
 import 'package:safety_voice/pages/word_setting.dart';
@@ -12,11 +14,27 @@ import 'package:safety_voice/pages/calendarHome.dart';
 import 'package:safety_voice/pages/nonamed.dart';
 import 'package:safety_voice/pages/caseFile.dart';
 import 'package:safety_voice/pages/stopRecord.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await requestLocationPermission(); // ✅ 위치 권한 요청
   runApp(const MyApp());
+}
+
+/// ✅ 위치 권한 요청 함수
+Future<void> requestLocationPermission() async {
+  var status = await Permission.location.status;
+
+  if (status.isDenied) {
+    status = await Permission.location.request();
+  }
+
+  if (status.isGranted) {
+    print("✅ 위치 권한 허용됨!");
+  } else if (status.isPermanentlyDenied) {
+    print("❌ 위치 권한 영구 거부됨 → 설정으로 유도");
+    await openAppSettings();
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -35,7 +53,6 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) {
-          // 여기서 context를 TriggerListener에 전달
           Future.microtask(() => triggerListener.init(context));
           return const MainScreen();
         },
@@ -49,6 +66,7 @@ class MyApp extends StatelessWidget {
         '/nonamed': (context) => const Nonamed(),
         '/casefile': (context) => const CaseFile(),
         '/stoprecord': (context) => const StopRecord(),
+        '/mapscreen': (context) => MapScreen(),
       },
     );
   }
