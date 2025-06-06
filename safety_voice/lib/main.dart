@@ -1,4 +1,3 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/signup_screen.dart';
@@ -36,13 +35,11 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignupScreen(),
         '/setup': (context) => const SetupScreen(),
         '/safezone': (context) => const SettingScreen(),
-
         '/listhome': (context) => const ListHome(),
         '/calendarhome': (context) => const CalendarHome(),
         '/nonamed': (context) => const Nonamed(),
         '/casefile': (context) => const CaseFile(),
         '/stoprecord': (context) => const StopRecord(),
-        
       },
     );
   }
