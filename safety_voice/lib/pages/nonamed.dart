@@ -228,7 +228,51 @@ class _NonamedState extends State<Nonamed> {
                           children: [
                             const Text("추가", style: TextStyle(fontSize: 12, color: Colors.grey)),
                             const SizedBox(width: 8),
-                            const Text("수정", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    TextEditingController titleController = TextEditingController();
+                                    TextEditingController descController = TextEditingController();
+
+                                    return AlertDialog(
+                                      title: const Text("사건 파일로 저장"),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          TextField(
+                                            controller: titleController,
+                                            decoration: const InputDecoration(labelText: "제목"),
+                                          ),
+                                          TextField(
+                                            controller: descController,
+                                            decoration: const InputDecoration(labelText: "설명"),
+                                          ),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text("취소"),
+                                        ),
+                                        TextButton(
+                                          onPressed: () async {
+                                            final dir = await getApplicationDocumentsDirectory();
+                                            final promotedFile = File('${dir.path}/promoted_files.txt');
+                                            final line = "${file["path"]}###${titleController.text}###${descController.text}\n";
+                                            await promotedFile.writeAsString(line, mode: FileMode.append);
+                                            Navigator.pop(context);
+                                          },
+                                          child: const Text("저장"),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                              child: const Text("수정", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            ),
                             const SizedBox(width: 8),
                             GestureDetector(
                               onTap: () => _deleteAudioFile(file),

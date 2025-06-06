@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 //import 'package:path_provider/path_provider.dart';
@@ -77,34 +79,47 @@ class ListHome extends StatelessWidget {
                     height: 1.0,
                     color: const Color(0xFFCACACA),
                   ),
-                  for (int i = 1; i <= 7; i++) ...[
-                    Container(
-                      width: double.infinity,
-                      height: 99.0,
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => Navigator.pushNamed(context, '/casefile'),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Container(
-                            margin: const EdgeInsets.only(top: 22.0, left: 15.0),
-                            child: Text(
-                              '사건 파일 $i',
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 20.0,
+                  FutureBuilder<List<Map<String, String>>>(
+                    future: _loadPromotedFiles(),
+                    builder: (context, snapshot) {
+                      final items = snapshot.data ?? [];
+
+                      return Column(
+                        children: items.map((item) {
+                          return Column(
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                height: 99.0,
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => Navigator.pushNamed(context, '/casefile'),
+                                  child: Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Container(
+                                      margin: const EdgeInsets.only(top: 22.0, left: 15.0),
+                                      child: Text(
+                                        item['title'] ?? '제목 없음',
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 20.0,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: double.infinity,
-                      height: 1.0,
-                      color: const Color(0xFFCACACA),
-                    ),
-                  ],
+                              Container(
+                                width: double.infinity,
+                                height: 1.0,
+                                color: const Color(0xFFCACACA),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      );
+                    },
+                  )
                 ],
               ),
             ),
@@ -249,4 +264,21 @@ class ListHome extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<List<Map<String, String>>> _loadPromotedFiles() async {
+  final dir = await getApplicationDocumentsDirectory();
+  final file = File('${dir.path}/promoted_files.txt');
+
+  if (!await file.exists()) return [];
+
+  final lines = await file.readAsLines();
+  return lines.map((line) {
+    final parts = line.split('###');
+    return {
+      'path': parts[0],
+      'title': parts.length > 1 ? parts[1] : '제목 없음',
+      'desc': parts.length > 2 ? parts[2] : '',
+    };
+  }).toList();
 }
