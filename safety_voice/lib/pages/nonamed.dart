@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:safety_voice/pages/case_file_select_page.dart';
 import 'package:safety_voice/services/gpt_service.dart';
 import 'package:safety_voice/services/whisper_service.dart';
 import 'dart:typed_data';
@@ -130,28 +131,25 @@ class _NonamedState extends State<Nonamed> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: AppBar(
-          backgroundColor: Colors.white,
-          title: GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/listhome'),
-            child: Row(
-              children: [
-                Image.asset('assets/images/back.png', height: 24),
-                const SizedBox(width: 8),
-                Text(
-                  "이름 없는 파일",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: MediaQuery.of(context).size.width * 0.05,
-                  ),
-                ),
-              ],
+          backgroundColor: const Color.fromARGB(255, 64, 84, 144),
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: Image.asset('assets/images/back.png', height: 24),
+            onPressed: () => Navigator.pushNamed(context, '/listhome'),
+          ),
+          title: Text(
+            "이름 없는 파일",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: MediaQuery.of(context).size.width * 0.05,
+              color: Colors.black,
             ),
           ),
-          automaticallyImplyLeading: false,
         ),
       ),
 
@@ -196,7 +194,7 @@ class _NonamedState extends State<Nonamed> {
                   ),
                 ),
 
-                // 2열: 파일명 + 시간
+                // 2열: 파일명 + 시간 + 용량
                 Expanded(
                   flex: 7,
                   child: Container(
@@ -214,7 +212,13 @@ class _NonamedState extends State<Nonamed> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "시간: ${file["duration"]}",
+                          "시간 : ${file["duration"]}",
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "용량 : ${getFileSize(file["size"])}",
                           style:
                               const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
@@ -223,39 +227,47 @@ class _NonamedState extends State<Nonamed> {
                   ),
                 ),
 
-                // 3열: 메뉴 + 용량
+                // 3열: 메뉴 아이콘 버튼 (이동, 수정, 삭제) 및 GPT 요약 버튼
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: Container(
                     height: 99.0,
+                    padding: const EdgeInsets.only(right: 8.0),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            const Text("추가",
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey)),
-                            const SizedBox(width: 8),
-                            const Text("수정",
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey)),
-                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CaseFileSelectPage(
+                                        sourceFile: File(file['path'])),
+                                  ),
+                                );
+                              },
+                              child: Image.asset('assets/images/transfer.png',
+                                  width: 24, height: 24),
+                            ),
+                            const SizedBox(width: 14),
+                            GestureDetector(
+                              onTap: () {
+                                // 수정 기능 구현 필요 시 여기에 추가
+                              },
+                              child: Image.asset('assets/images/modify.png',
+                                  width: 24, height: 24),
+                            ),
+                            const SizedBox(width: 14),
                             GestureDetector(
                               onTap: () => _deleteAudioFile(file),
-                              child: const Text("삭제",
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey)),
+                              child: Image.asset('assets/images/delete.png',
+                                  width: 24, height: 24),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "용량: ${getFileSize(file["size"])}",
-                          style:
-                              const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                         const SizedBox(height: 4),
                         GestureDetector(
