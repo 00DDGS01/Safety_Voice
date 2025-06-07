@@ -132,7 +132,6 @@ class _StopRecordState extends State<StopRecord> {
 
           // 녹음 상태 텍스트
           SizedBox(
-          height: 24,
           child: Center(
             child: _isRecording
                 ? const Text(
@@ -142,7 +141,7 @@ class _StopRecordState extends State<StopRecord> {
                 : const SizedBox.shrink(),
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 50),
           // 버튼 2개 (토글 버튼 + 뒤로가기)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -173,7 +172,7 @@ class _StopRecordState extends State<StopRecord> {
                 ElevatedButton(
                   onPressed: () {
                     TriggerListener().restart(context);
-                    Navigator.pushReplacementNamed(context, '/listhome');
+                    Navigator.pushReplacementNamed(context, '/nonamed'); //시간나면 home-> 토스트트
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey,
