@@ -11,7 +11,7 @@ class MainScreen extends StatelessWidget {
     final double buttonHeight = size.height * 0.07; // 화면 높이의 6%
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFEFF3FF),
       body: SafeArea(
         child: Center(
           child: Column(
@@ -20,9 +20,8 @@ class MainScreen extends StatelessWidget {
               SizedBox(height: size.height * 0.1),
               Image.asset(
                 'assets/logo.png',
-                height: logoHeight,
+                height: logoHeight-130,
               ),
-              const Spacer(),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
                 child: Column(
@@ -51,14 +50,18 @@ class MainScreen extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () => Navigator.pushNamed(context, '/signup'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6B7AFF),
+                          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
                           shape: RoundedRectangleBorder(
+                            side: const BorderSide(
+                              color: Color(0xFF6B7AFF)
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
+                          
                         ),
                         child: const Text(
                           '회원가입',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                          style: TextStyle(fontSize: 16, color: Color(0xFF6B7AFF)),
                         ),
                       ),
                     ),
