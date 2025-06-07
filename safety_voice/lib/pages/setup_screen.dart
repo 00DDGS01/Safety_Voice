@@ -1,6 +1,9 @@
 //안전지대
 import 'package:flutter/material.dart';
 import 'package:safety_voice/pages/word_setting.dart';
+import 'package:safety_voice/pages/home.dart';
+import 'package:safety_voice/pages/map_screen.dart';
+
 
 // 타임테이블 버튼 추가된 SetupScreen 코드
 class SetupScreen extends StatefulWidget {
@@ -408,28 +411,42 @@ children: [
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/home'),
-                  child: Image.asset(
-                    'assets/home/recordingList.png',
-                    fit: BoxFit.contain,
-                  ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => const Home(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  child: Image.asset('assets/home/recordingList.png', fit: BoxFit.contain),
                 ),
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/safezone'),
-                  child: Image.asset(
-                    'assets/home/wordRecognition.png',
-                    fit: BoxFit.contain,
-                  ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => const SettingScreen(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  child: Image.asset('assets/home/wordRecognition.png', fit: BoxFit.contain),
                 ),
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/setup'),
-                  child: Image.asset(
-                    'assets/home/safeZone_.png',
-                    fit: BoxFit.contain,
-                  ),
+                TextButton(
+                  onPressed: () {
+                  },
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  child: Image.asset('assets/home/safeZone_.png', fit: BoxFit.contain),
                 ),
               ],
+
             ),
           ),
         ),
@@ -1000,9 +1017,17 @@ Widget buildLocationRow(String label, String hint) {
       ),
       const SizedBox(width: 8),
       TextButton(
-  onPressed: () {
-    Navigator.pushNamed(context, '/mapscreen');
-  },
+        onPressed: () {
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const MapScreen(), // 실제 위젯 이름으로 바꿔주세요
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
+        },
+
   style: TextButton.styleFrom(
     backgroundColor: const Color(0xFFD9D9D9),
     minimumSize: const Size(67, 27),

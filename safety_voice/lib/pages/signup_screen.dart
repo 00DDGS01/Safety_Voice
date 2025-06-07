@@ -224,6 +224,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:safety_voice/pages/login_screen.dart';
+
+
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -269,7 +272,16 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (response.statusCode == 201) {
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/login');
+
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const LoginScreen(),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('회원가입이 완료되었습니다.')),
         );

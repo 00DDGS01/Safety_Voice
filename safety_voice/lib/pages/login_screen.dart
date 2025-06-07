@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:safety_voice/pages/home.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -56,9 +58,17 @@ class _LoginScreenState extends State<LoginScreen> {
     await Future.delayed(const Duration(seconds: 1));
 
     // 백엔드 연동 없이 홈화면으로 이동
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
-    }
+  if (mounted) {
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const Home(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  }
+
 
     setState(() {
       _isLoading = false;

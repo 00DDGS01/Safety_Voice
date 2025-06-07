@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
+import 'package:safety_voice/pages/home.dart';
+import 'package:safety_voice/pages/setup_screen.dart';
+
 import 'dart:async';
 import 'dart:math';
 
@@ -251,28 +254,42 @@ class _SettingScreenState extends State<SettingScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/home'),
-                    child: Image.asset(
-                      'assets/home/recordingList.png',
-                      fit: BoxFit.contain,
-                    ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const Home(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Image.asset('assets/home/recordingList.png', fit: BoxFit.contain),
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/safezone'),
-                    child: Image.asset(
-                      'assets/home/wordRecognition_.png',
-                      fit: BoxFit.contain,
-                    ),
+                  TextButton(
+                    onPressed: () {
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Image.asset('assets/home/wordRecognition_.png', fit: BoxFit.contain),
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/setup'),
-                    child: Image.asset(
-                      'assets/home/safeZone.png',
-                      fit: BoxFit.contain,
-                    ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const SetupScreen(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Image.asset('assets/home/safeZone.png', fit: BoxFit.contain),
                   ),
                 ],
+
               ),
             ),
           ),

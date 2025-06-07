@@ -1,6 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:safety_voice/pages/word_setting.dart';
+import 'package:safety_voice/pages/setup_screen.dart';
+import 'package:safety_voice/pages/nonamed.dart';
+import 'package:safety_voice/pages/caseFile.dart';
+import 'package:safety_voice/pages/stopRecord.dart';
+
 
 
 class Home extends StatefulWidget {
@@ -14,7 +20,7 @@ class _HomeState extends State<Home> {
   bool isCalendarMode = true;
 
   final Color calendarBgColor = const Color(0xFFEFF3FF);
-  final Color listBgColor = const Color(0xFFE3E7F6);
+  final Color listBgColor = const Color(0xFFEFF3FF);
 
   final List<String> calendarDays = List.generate(31, (index) => (index + 1).toString());
   final int firstDayOfWeek = 1;
@@ -43,12 +49,13 @@ class _HomeState extends State<Home> {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: true,
         title: Text(
           isCalendarMode ? '달력' : '파일 목록',
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         actions: [
           _topModeButton(
@@ -89,19 +96,43 @@ class _HomeState extends State<Home> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/home'),
+                  TextButton(
+                    onPressed: () {
+                      
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
                     child: Image.asset('assets/home/recordingList_.png', fit: BoxFit.contain),
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/safezone'),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const SettingScreen(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
                     child: Image.asset('assets/home/wordRecognition.png', fit: BoxFit.contain),
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/setup'),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const SetupScreen(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
                     child: Image.asset('assets/home/safeZone.png', fit: BoxFit.contain),
                   ),
                 ],
+
               ),
             ),
           ),
@@ -119,7 +150,16 @@ class _HomeState extends State<Home> {
             for (int i = 0; i < fileData.length + 1; i++)
               i == 0
                 ? GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/nonamed'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const Nonamed(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
                     child: Container(
                       height: 110,
                       margin: const EdgeInsets.only(bottom: 16.0),
@@ -137,7 +177,7 @@ class _HomeState extends State<Home> {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                child: Text(
+                                child: const Text(
                                   "이름 없는 파일",
                                   style: TextStyle(
                                     color: Colors.black,
@@ -154,7 +194,16 @@ class _HomeState extends State<Home> {
                     ),
                   )
                 : GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/casefile'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const CaseFile(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
                     child: _buildFileBox(
                       title: fileData[i - 1]['title'],
                       recent: fileData[i - 1]['recent'],
@@ -164,6 +213,7 @@ class _HomeState extends State<Home> {
                       textColor: Color(int.parse(fileData[i - 1]['textColor'].replaceFirst('#', '0xFF'))),
                     ),
                   )
+
 
           ],
         ),
@@ -184,7 +234,16 @@ class _HomeState extends State<Home> {
             bottom: 16.0,
             left: 16.0,
             child: GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/stoprecord'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => const StopRecord(), // 이 부분은 실제 위젯 이름에 맞게 수정
+                    transitionDuration: Duration.zero,
+                    reverseTransitionDuration: Duration.zero,
+                  ),
+                );
+              },
               child: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
@@ -258,7 +317,7 @@ class _HomeState extends State<Home> {
       alignment: Alignment.bottomCenter,
       child: Container(
         width: double.infinity,
-        height: MediaQuery.of(context).size.height * 0.8,
+        height: MediaQuery.of(context).size.height * 0.785,
         decoration: const BoxDecoration(
           color: Color.fromARGB(255, 255, 255, 255),
           borderRadius: BorderRadius.only(
@@ -266,116 +325,118 @@ class _HomeState extends State<Home> {
             topRight: Radius.circular(40),
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  DropdownButton<int>(
-                    value: now.year,
-                    icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
-                    underline: const SizedBox(),
-                    items: List.generate(10, (index) {
-                      int year = 2020 + index;
-                      return DropdownMenuItem(
-                        value: year,
-                        child: Text('$year년', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
-                      );
-                    }),
-                    onChanged: (value) {},
-                  ),
-                  const SizedBox(width: 10),
-                  DropdownButton<int>(
-                    value: now.month,
-                    icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
-                    underline: const SizedBox(),
-                    items: List.generate(12, (index) {
-                      int month = index + 1;
-                      return DropdownMenuItem(
-                        value: month,
-                        child: Text('$month월', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
-                      );
-                    }),
-                    onChanged: (value) {},
-                  ),
-                  const SizedBox(width: 10),
-                  DropdownButton<int>(
-                    value: now.day,
-                    icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
-                    underline: const SizedBox(),
-                    items: List.generate(31, (index) {
-                      int day = index + 1;
-                      return DropdownMenuItem(
-                        value: day,
-                        child: Text('$day일', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
-                      );
-                    }),
-                    onChanged: (value) {},
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Image.asset(
-              'assets/images/monday.png',
-              fit: BoxFit.cover,
-            ),
-            Container(
-              width: double.infinity,
-              height: 1.0,
-              color: const Color(0xFFCACACA),
-            ),
-            for (int i = 0; i < 5; i++) ...[
-              SizedBox(
-                height: 99.0,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Row(
-                  children: List.generate(7, (j) {
-                    int dateIndex = i * 7 + j;
-                    bool isToday = dateIndex >= firstDayOfWeek - 1 &&
-                        dateIndex < calendarDays.length &&
-                        calendarDays[dateIndex] == now.day.toString();
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    DropdownButton<int>(
+                      value: now.year,
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
+                      underline: const SizedBox(),
+                      items: List.generate(10, (index) {
+                        int year = 2020 + index;
+                        return DropdownMenuItem(
+                          value: year,
+                          child: Text('$year년', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
+                        );
+                      }),
+                      onChanged: (value) {},
+                    ),
+                    const SizedBox(width: 10),
+                    DropdownButton<int>(
+                      value: now.month,
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
+                      underline: const SizedBox(),
+                      items: List.generate(12, (index) {
+                        int month = index + 1;
+                        return DropdownMenuItem(
+                          value: month,
+                          child: Text('$month월', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
+                        );
+                      }),
+                      onChanged: (value) {},
+                    ),
+                    const SizedBox(width: 10),
+                    DropdownButton<int>(
+                      value: now.day,
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
+                      underline: const SizedBox(),
+                      items: List.generate(31, (index) {
+                        int day = index + 1;
+                        return DropdownMenuItem(
+                          value: day,
+                          child: Text('$day일', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
+                        );
+                      }),
+                      onChanged: (value) {},
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Image.asset(
+                'assets/images/monday.png',
+                fit: BoxFit.cover,
+              ),
+              Container(
+                width: double.infinity,
+                height: 1.0,
+                color: const Color(0xFFCACACA),
+              ),
+              for (int i = 0; i < 5; i++) ...[
+                SizedBox(
+                  height: 99.0,
+                  child: Row(
+                    children: List.generate(7, (j) {
+                      int dateIndex = i * 7 + j;
+                      bool isToday = dateIndex >= firstDayOfWeek - 1 &&
+                          dateIndex < calendarDays.length &&
+                          calendarDays[dateIndex] == now.day.toString();
 
-                    return Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(left: 6.0),
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Container(
-                            margin: const EdgeInsets.only(top: 1.0),
-                            width: 23.0,
-                            height: 23.0,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: isToday ? Color(0xFF577BE5) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(4.0),
-                            ),
-                            child: Text(
-                              dateIndex < calendarDays.length ? calendarDays[dateIndex] : '',
-                              style: TextStyle(
-                                fontSize: 12.0,
-                                color: isToday ? Colors.white : Colors.black,
-                                fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      return Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.only(left: 6.0),
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 1.0),
+                              width: 23.0,
+                              height: 23.0,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isToday ? Color(0xFF577BE5) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(4.0),
+                              ),
+                              child: Text(
+                                dateIndex < calendarDays.length ? calendarDays[dateIndex] : '',
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: isToday ? Colors.white : Colors.black,
+                                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    }),
+                  ),
                 ),
-              ),
-              if (i != 4)
-                Container(
-                  width: double.infinity,
-                  height: 1.0,
-                  color: const Color(0xFFCACACA),
-                ),
+                if (i != 4)
+                  Container(
+                    width: double.infinity,
+                    height: 1.0,
+                    color: const Color(0xFFCACACA),
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

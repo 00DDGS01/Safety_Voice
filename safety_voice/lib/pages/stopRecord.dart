@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:safety_voice/pages/nonamed.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:safety_voice/services/trigger_listener.dart'; // ✅ TriggerListener 임포트
@@ -172,8 +173,16 @@ class _StopRecordState extends State<StopRecord> {
                 ElevatedButton(
                   onPressed: () {
                     TriggerListener().restart(context);
-                    Navigator.pushReplacementNamed(context, '/nonamed'); //시간나면 home-> 토스트트
+                    Navigator.pushReplacement(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => const Nonamed(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
+                    );
                   },
+
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey,
                     foregroundColor: Colors.white,

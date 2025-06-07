@@ -17,29 +17,23 @@ class _CaseFileState extends State<CaseFile> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80), // AppBar 높이를 80으로 설정
+        preferredSize: const Size.fromHeight(80),
         child: AppBar(
-          backgroundColor: Colors.white,
-          title: GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/listhome'),
-            child: Row(
-              children: [
-                Image.asset(
-                  'assets/images/back.png', // back.png 이미지
-                  height: 24, // 이미지 높이
-                ),
-                const SizedBox(width: 8), // 이미지와 텍스트 사이 간격
-                Text(
-                  "사건 파일 1",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: MediaQuery.of(context).size.width * 0.05,
-                  ),
-                ),
-              ],
+          backgroundColor: const Color.fromARGB(255, 239, 243, 255),
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: Image.asset('assets/images/back.png', height: 24),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            "사건 파일 1",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: MediaQuery.of(context).size.width * 0.05,
+              color: Colors.black,
             ),
           ),
-          automaticallyImplyLeading: false,
         ),
       ),
       body: Align(
