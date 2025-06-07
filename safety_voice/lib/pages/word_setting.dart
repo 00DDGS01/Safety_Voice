@@ -229,82 +229,52 @@ class _SettingScreenState extends State<SettingScreen> {
           if (isLearning) _buildLearningModal(),
         ],
       ),
-      bottomNavigationBar: Container(
-        height: 90,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Colors.grey[300]!, width: 1),
-          ),
-        ),
-        child: SafeArea(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/listhome'),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.list_alt,
-                      size: 28,
-                      color: Colors.grey[600],
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '녹음 목록',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
+      bottomNavigationBar: SizedBox(
+        height: 80, // 하단바 높이 증가
+        child: Material(
+          elevation: 20, // 그림자 더 짙게
+          color: const Color.fromARGB(157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF), // 하단바 배경 흰색
+              border: Border(
+                top: BorderSide(
+                  color: const Color.fromARGB(255, 177, 177, 177), // 테두리 색 지정
+                  width: 2.0,
                 ),
               ),
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/safezone'),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.mic,
-                      size: 28,
-                      color: Color(0xFF6B73FF),
+            ),
+            child: BottomAppBar(
+              color: Colors.transparent, // 배경 투명 (상위 Container에서 처리)
+              shape: const CircularNotchedRectangle(),
+              notchMargin: 8.0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/calendarhome'),
+                    child: Image.asset(
+                      'assets/home/recordingList.png',
+                      fit: BoxFit.contain,
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      '단어 인식',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B73FF),
-                      ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/safezone'),
+                    child: Image.asset(
+                      'assets/home/wordRecognition_.png',
+                      fit: BoxFit.contain,
                     ),
-                  ],
-                ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/setup'),
+                    child: Image.asset(
+                      'assets/home/safeZone.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ],
               ),
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/setup'),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.home,
-                      size: 28,
-                      color: Colors.grey[600],
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '안전 지대',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

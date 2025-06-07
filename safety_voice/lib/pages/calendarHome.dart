@@ -129,51 +129,55 @@ class CalendarHome extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: SizedBox(
-        height: 70, // 하단바 세로 길이를 고정
+        height: 80, // 하단바 높이 증가
         child: Material(
-          elevation: 10, // 하단바 그림자 효과 추가
-          color: const Color.fromARGB(255, 58, 58, 58),
-          child: BottomAppBar(
-            color: const Color.fromARGB(255, 255, 255, 255), // 하단바 배경색 설정
-            shape: const CircularNotchedRectangle(), // 둥근 디자인 추가
-            notchMargin: 8.0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/calendarhome'),
-                  child: Container(
+          elevation: 20, // 그림자 더 짙게
+          color: const Color.fromARGB(157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF), // 하단바 배경 흰색
+              border: Border(
+                top: BorderSide(
+                  color: const Color.fromARGB(255, 177, 177, 177), // 테두리 색 지정
+                  width: 2.0,
+                ),
+              ),
+            ),
+            child: BottomAppBar(
+              color: Colors.transparent, // 배경 투명 (상위 Container에서 처리)
+              shape: const CircularNotchedRectangle(),
+              notchMargin: 8.0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/calendarhome'),
                     child: Image.asset(
-                      'assets/images/recordingList.png',
+                      'assets/home/recordingList_.png',
                       fit: BoxFit.contain,
                     ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/safezone'),
-
-              
-                  child: Container(
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/safezone'),
                     child: Image.asset(
-                      'assets/images/wordRecognition.png',
+                      'assets/home/wordRecognition.png',
                       fit: BoxFit.contain,
                     ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/setup'),
-                  child: Container(
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/setup'),
                     child: Image.asset(
-                      'assets/images/safeZone.png',
+                      'assets/home/safeZone.png',
                       fit: BoxFit.contain,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
+
     );
   }
 }
