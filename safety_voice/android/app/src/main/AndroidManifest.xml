@@ -1,11 +1,25 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- ✅ 인터넷 권한 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- ✅ 마이크 권한 추가 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+
 <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:label="safety_voice"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <meta-data
+          android:name="com.google.android.geo.API_KEY"
+          android:value="@string/google_maps_api_key" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

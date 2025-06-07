@@ -1,9 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:safety_voice/pages/case_file_select_page.dart';
+import 'package:safety_voice/services/gpt_service.dart';
+import 'package:safety_voice/services/whisper_service.dart';
 import 'dart:typed_data';
+import 'package:safety_voice/utils/secrets.dart';
 
 class Nonamed extends StatefulWidget {
   const Nonamed({super.key});
@@ -29,7 +34,8 @@ class _NonamedState extends State<Nonamed> {
       final player = AudioPlayer();
 
       if (isAsset) {
-        await player.setSource(AssetSource(filePath.replaceFirst("assets/", "")));
+        await player
+            .setSource(AssetSource(filePath.replaceFirst("assets/", "")));
       } else {
         await player.setSource(DeviceFileSource(filePath)); // ✅ 내부 저장소 파일도 지원
       }
@@ -57,7 +63,8 @@ class _NonamedState extends State<Nonamed> {
           final file = File(filePath);
           if (await file.exists()) {
             int fileSize = await file.length();
-            String duration = await _getAudioDuration(filePath, false); // ✅ 내부 저장소 파일 길이 측정
+            String duration =
+                await _getAudioDuration(filePath, false); // ✅ 내부 저장소 파일 길이 측정
 
             files.add({
               "name": file.path.split('/').last,
@@ -79,7 +86,6 @@ class _NonamedState extends State<Nonamed> {
       print("🚨 파일 불러오기 오류: $e");
     }
   }
-
 
   // 📌 시간 형식 변환 함수
   String _formatDuration(Duration duration) {
@@ -104,7 +110,8 @@ class _NonamedState extends State<Nonamed> {
         setState(() => _currentPlayingFile = null);
       } else {
         if (isAsset) {
-          await _audioPlayer.play(AssetSource(filePath.replaceFirst("assets/", "")));
+          await _audioPlayer
+              .play(AssetSource(filePath.replaceFirst("assets/", "")));
         } else {
           await _audioPlayer.play(DeviceFileSource(filePath));
         }
@@ -120,31 +127,29 @@ class _NonamedState extends State<Nonamed> {
     _audioPlayer.dispose();
     super.dispose();
   }
-    @override
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: AppBar(
-          backgroundColor: Colors.white,
-          title: GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/listhome'),
-            child: Row(
-              children: [
-                Image.asset('assets/images/back.png', height: 24),
-                const SizedBox(width: 8),
-                Text(
-                  "이름 없는 파일",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: MediaQuery.of(context).size.width * 0.05,
-                  ),
-                ),
-              ],
+          backgroundColor: const Color.fromARGB(255, 239, 243, 255),
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: Image.asset('assets/images/back.png', height: 24),
+            onPressed: () => Navigator.pushNamed(context, '/listhome'),
+          ),
+          title: Text(
+            "이름 없는 파일",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: MediaQuery.of(context).size.width * 0.05,
+              color: Colors.black,
             ),
           ),
-          automaticallyImplyLeading: false,
         ),
       ),
 
@@ -159,7 +164,6 @@ class _NonamedState extends State<Nonamed> {
       ),
     );
   }
-
 
   // 오디오 파일 컨테이너 생성
   Widget _buildAudioFileContainer(Map<String, dynamic> file) {
@@ -184,11 +188,13 @@ class _NonamedState extends State<Nonamed> {
                         ? Icons.pause_circle_filled
                         : Icons.play_circle_fill,
                     size: 36,
-                    color: _currentPlayingFile == file["path"] ? Colors.red : Colors.blue,
+                    color: _currentPlayingFile == file["path"]
+                        ? Colors.red
+                        : Color.fromARGB(255, 87, 123, 229),
                   ),
                 ),
 
-                // 2열: 파일명 + 시간
+                // 2열: 파일명 + 시간 + 용량
                 Expanded(
                   flex: 7,
                   child: Container(
@@ -206,37 +212,72 @@ class _NonamedState extends State<Nonamed> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "시간: ${file["duration"]}",
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          "시간 : ${file["duration"]}",
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "용량 : ${getFileSize(file["size"])}",
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                // 3열: 메뉴 + 용량
+                // 3열: 메뉴 아이콘 버튼 (이동, 수정, 삭제) 및 GPT 요약 버튼
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: Container(
                     height: 99.0,
+                    padding: const EdgeInsets.only(right: 8.0),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: const [
-                            Text("추가", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                            SizedBox(width: 8),
-                            Text("수정", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                            SizedBox(width: 8),
-                            Text("삭제", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CaseFileSelectPage(
+                                        sourceFile: File(file['path'])),
+                                  ),
+                                );
+                              },
+                              child: Image.asset('assets/images/transfer.png',
+                                  width: 24, height: 24),
+                            ),
+                            const SizedBox(width: 14),
+                            GestureDetector(
+                              onTap: () {
+                                // 수정 기능 구현 필요 시 여기에 추가
+                              },
+                              child: Image.asset('assets/images/modify.png',
+                                  width: 24, height: 24),
+                            ),
+                            const SizedBox(width: 14),
+                            GestureDetector(
+                              onTap: () => _deleteAudioFile(file),
+                              child: Image.asset('assets/images/delete.png',
+                                  width: 24, height: 24),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          "용량: ${getFileSize(file["size"])}",
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        GestureDetector(
+                          onTap: () => _summarizeWithGPT(file),
+                          child: const Text(
+                            "GPT로 요약하기",
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Color.fromARGB(255, 87, 123, 229)),
+                          ),
                         ),
                       ],
                     ),
@@ -246,10 +287,106 @@ class _NonamedState extends State<Nonamed> {
             ),
           ),
         ),
-        Container(width: double.infinity, height: 1.0, color: const Color(0xFFCACACA)),
+        Container(
+            width: double.infinity,
+            height: 1.0,
+            color: const Color(0xFFCACACA)),
       ],
     );
   }
 
+  Future<void> _deleteAudioFile(Map<String, dynamic> file) async {
+    try {
+      final audioFile = File(file["path"]);
+      if (await audioFile.exists()) {
+        await audioFile.delete();
+      }
 
+      // Update the recording list file
+      final dir = await getApplicationDocumentsDirectory();
+      final recordingListFile = File('${dir.path}/recording_list.txt');
+      if (await recordingListFile.exists()) {
+        List<String> updatedList = await recordingListFile.readAsLines();
+        updatedList.remove(file["path"]);
+        await recordingListFile.writeAsString(updatedList.join('\n'));
+      }
+
+      // Refresh UI
+      setState(() {
+        audioFiles.remove(file);
+        if (_currentPlayingFile == file["path"]) {
+          _currentPlayingFile = null;
+        }
+      });
+    } catch (e) {
+      print("🚨 삭제 중 오류 발생: $e");
+    }
+  }
+
+  Future<void> _summarizeWithGPT(Map<String, dynamic> file) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color.fromARGB(255, 240, 244, 255),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '요약 중...',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const SizedBox(
+          height: 50,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+    );
+
+    try {
+      final transcript = await transcribeWithWhisper(File(file['path']));
+      final summary = await summarizeWithGPT(transcript);
+
+      Navigator.pop(context);
+
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: Color.fromARGB(255, 240, 244, 255),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text(
+            '요약 결과',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(summary),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: const Color.fromARGB(218, 255, 240, 240),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text(
+            '오류 발생',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(e.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
 }

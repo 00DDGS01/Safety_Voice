@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
+import 'package:safety_voice/services/trigger_listener.dart'; // ✅ TriggerListener 임포트
 
 class StopRecord extends StatefulWidget {
   const StopRecord({super.key});
@@ -21,7 +22,9 @@ class _StopRecordState extends State<StopRecord> {
   @override
   void initState() {
     super.initState();
-    _initRecorder();
+    _initRecorder().then((_) {
+      _startRecording();
+    });
   }
 
   Future<void> _initRecorder() async {
@@ -38,23 +41,24 @@ class _StopRecordState extends State<StopRecord> {
   }
 
   Future<void> _startRecording() async {
-  try {
-    if (!_isRecorderInitialized) throw Exception('Recorder is not initialized');
-    final dir = await getApplicationDocumentsDirectory();
-    _filePath = '${dir.path}/${DateFormat('yyyyMMddHHmm').format(DateTime.now())}.aac'; // ✅ AAC 형식으로 변경
+    try {
+      if (!_isRecorderInitialized)
+        throw Exception('Recorder is not initialized');
+      final dir = await getApplicationDocumentsDirectory();
+      _filePath =
+          '${dir.path}/${DateFormat('yyyyMMddHHmm').format(DateTime.now())}.mp4';
 
-    await _recorder.startRecorder(
-      toFile: _filePath,
-      codec: Codec.aacADTS, // ✅ MP3 대신 AAC 사용
-    );
+      await _recorder.startRecorder(
+        toFile: _filePath,
+        codec: Codec.aacMP4,
+      );
 
-    print("🎤 녹음 시작됨: $_filePath");
-    setState(() => _isRecording = true);
-  } catch (e) {
-    print('🚨 Error starting recording: $e');
+      print("🎤 녹음 시작됨: $_filePath");
+      setState(() => _isRecording = true);
+    } catch (e) {
+      print('🚨 Error starting recording: $e');
+    }
   }
-}
-
 
   Future<void> _stopRecording() async {
     try {
@@ -62,20 +66,20 @@ class _StopRecordState extends State<StopRecord> {
       setState(() => _isRecording = false);
 
       if (_filePath != null) {
-        await _saveRecordingPath(_filePath!); // ✅ 녹음 파일 경로 저장
+        await _saveRecordingPath(_filePath!);
       }
     } catch (e) {
       print('🚨 Error stopping recording: $e');
     }
   }
 
-  // ✅ 녹음된 파일의 경로를 내부 저장소에 기록
   Future<void> _saveRecordingPath(String filePath) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final recordingListFile = File('${dir.path}/recording_list.txt');
 
-      await recordingListFile.writeAsString('$filePath\n', mode: FileMode.append);
+      await recordingListFile.writeAsString('$filePath\n',
+          mode: FileMode.append);
       print("✅ 녹음 파일 저장됨: $filePath");
     } catch (e) {
       print("🚨 녹음 파일 저장 오류: $e");
@@ -88,74 +92,103 @@ class _StopRecordState extends State<StopRecord> {
       _recorder.stopRecorder();
     }
     _recorder.closeRecorder();
+
+    // ✅ 녹음 종료 후 STT 재시작
+    TriggerListener().restart(context);
+
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedContainer(
-                  duration: Duration(milliseconds: 300),
-                  width: _isRecording ? 220 : 200,
-                  height: _isRecording ? 220 : 200,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _isRecording ? Colors.red.withOpacity(0.8) : Colors.grey.withOpacity(0.5),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      _isRecording ? Icons.mic : Icons.mic_none,
-                      color: Colors.white,
-                      size: 80,
+      backgroundColor: const Color(0xFFF4F6FF), // 연한 배경
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 마이크 + glow 효과 (녹음 중일 때만)
+            Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: _isRecording
+                    ? [
+                        BoxShadow(
+                          color: Colors.redAccent.withOpacity(0.4),
+                          blurRadius: 60,
+                          spreadRadius: 20,
+                        ),
+                      ]
+                    : [],
+                color: _isRecording ? Colors.red : Colors.grey,
+              ),
+              child: const Center(
+                child: Icon(Icons.mic, color: Colors.white, size: 60),
+              ),
+            ),
+            const SizedBox(height: 40),
+
+          // 녹음 상태 텍스트
+          SizedBox(
+          height: 24,
+          child: Center(
+            child: _isRecording
+                ? const Text(
+                    '녹음을 중지하시겠습니까?',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ),
+        const SizedBox(height: 40),
+          // 버튼 2개 (토글 버튼 + 뒤로가기)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 🔄 녹음 시작 / 중지 버튼
+                ElevatedButton(
+                  onPressed: _isRecording ? _stopRecording : _startRecording,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isRecording
+                        ? Colors.white
+                        : const Color(0xFF5C7CFA),
+                    foregroundColor: _isRecording
+                        ? const Color(0xFF5C7CFA)
+                        : Colors.white,
+                    side: _isRecording
+                        ? const BorderSide(color: Color(0xFF5C7CFA))
+                        : null,
+                    minimumSize: const Size(140, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
+                  child: Text(_isRecording ? '녹음 중지' : '녹음 시작'),
                 ),
-                const SizedBox(height: 30),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => Navigator.pushReplacementNamed(context, '/listhome'),
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        backgroundColor: Colors.grey,
-                      ),
-                      child: const Text(
-                        '뒤로가기',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
+                const SizedBox(width: 16),
+
+                // ⬅ 뒤로가기 버튼
+                ElevatedButton(
+                  onPressed: () {
+                    TriggerListener().restart(context);
+                    Navigator.pushReplacementNamed(context, '/listhome');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(100, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: _isRecording ? _stopRecording : _startRecording,
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                        backgroundColor: _isRecording ? Colors.red : Colors.green,
-                      ),
-                      child: Text(
-                        _isRecording ? 'Stop Recording' : 'Start Recording',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
+                  ),
+                  child: const Text('뒤로가기'),
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
