@@ -1,5 +1,6 @@
 // lib/pages/splash_screen.dart
 import 'package:flutter/material.dart';
+import 'package:safety_voice/pages/main_screen.dart'; // 경로는 실제 파일에 맞게 조정
 import 'dart:async';
 
 class SplashScreen extends StatefulWidget {
@@ -14,7 +15,22 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Timer(const Duration(seconds: 2), () {
-      Navigator.pushReplacementNamed(context, '/main');
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const MainScreen(),
+          transitionDuration: const Duration(milliseconds: 300),
+          reverseTransitionDuration: const Duration(milliseconds: 300),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+        ),
+      );
+
     });
   }
 
