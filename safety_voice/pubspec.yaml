@@ -48,6 +48,7 @@ dependencies:
   speech_to_text: ^7.0.0
   google_maps_flutter: ^2.10.1
   location : ^6.0.2
+  
 
 dev_dependencies:
   flutter_test:
