@@ -73,8 +73,7 @@ flutter:
     - assets/
     - assets/home/
     - assets/images/
-    - assets/m4a/
-    
+    - assets/data/
    
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -409,7 +409,7 @@ children: [
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/calendarhome'),
+                  onTap: () => Navigator.pushNamed(context, '/home'),
                   child: Image.asset(
                     'assets/home/recordingList.png',
                     fit: BoxFit.contain,

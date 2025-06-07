@@ -57,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 백엔드 연동 없이 홈화면으로 이동
     if (mounted) {
-      Navigator.pushReplacementNamed(context, '/calendarhome');
+      Navigator.pushReplacementNamed(context, '/home');
     }
 
     setState(() {

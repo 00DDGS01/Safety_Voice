@@ -2,14 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-class CalendarHome extends StatefulWidget {
-  const CalendarHome({super.key});
+
+class Home extends StatefulWidget {
+  const Home({super.key});
 
   @override
-  State<CalendarHome> createState() => _CalendarHomeState();
+  State<Home> createState() => _HomeState();
 }
 
-class _CalendarHomeState extends State<CalendarHome> {
+class _HomeState extends State<Home> {
   bool isCalendarMode = true;
 
   final Color calendarBgColor = const Color(0xFFEFF3FF);
@@ -117,7 +118,9 @@ class _CalendarHomeState extends State<CalendarHome> {
           children: [
             for (int i = 0; i < fileData.length + 1; i++)
               i == 0
-                  ? Container(
+                ? GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/nonamed'),
+                    child: Container(
                       height: 110,
                       margin: const EdgeInsets.only(bottom: 16.0),
                       padding: const EdgeInsets.all(16.0),
@@ -134,16 +137,25 @@ class _CalendarHomeState extends State<CalendarHome> {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                
-                                child: Text("이름 없는 파일", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                                child: Text(
+                                  "이름 없는 파일",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 10),
                             ],
                           ),
                         ],
                       ),
-                    )
-                  : _buildFileBox(
+                    ),
+                  )
+                : GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/casefile'),
+                    child: _buildFileBox(
                       title: fileData[i - 1]['title'],
                       recent: fileData[i - 1]['recent'],
                       count: fileData[i - 1]['count'],
@@ -151,6 +163,8 @@ class _CalendarHomeState extends State<CalendarHome> {
                       badgeColor: Color(int.parse(fileData[i - 1]['color'].replaceFirst('#', '0xFF'))),
                       textColor: Color(int.parse(fileData[i - 1]['textColor'].replaceFirst('#', '0xFF'))),
                     ),
+                  )
+
           ],
         ),
         Positioned(
@@ -165,6 +179,28 @@ class _CalendarHomeState extends State<CalendarHome> {
             ),
           ),
         ),
+
+        Positioned(
+            bottom: 16.0,
+            left: 16.0,
+            child: GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/stoprecord'),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red,
+                ),
+                padding: const EdgeInsets.all(16.0),
+                child: const Icon(
+                  Icons.mic,
+                  color: Colors.white,
+                  size: 30.0,
+                ),
+              ),
+            ),
+          ),
+
+          
       ],
     );
   }
