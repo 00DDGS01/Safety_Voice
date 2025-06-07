@@ -140,7 +140,7 @@ class _NonamedState extends State<Nonamed> {
           automaticallyImplyLeading: false,
           leading: IconButton(
             icon: Image.asset('assets/images/back.png', height: 24),
-            onPressed: () => Navigator.pushNamed(context, '/listhome'),
+            onPressed: () => Navigator.pop(context),
           ),
           title: Text(
             "이름 없는 파일",
