@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:safety_voice/pages/stopRecord.dart';
 
 class TriggerListener {
   // ✅ 싱글톤 인스턴스
@@ -54,7 +55,15 @@ class TriggerListener {
         if (transcript.contains(trigger)) {
           print("🚨 트리거 단어 감지됨!");
           stop();
-          Navigator.pushReplacementNamed(context, '/stoprecord'); // 자동 이동
+
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const StopRecord(),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
         }
       },
       listenFor: const Duration(minutes: 10),
