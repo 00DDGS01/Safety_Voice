@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/home.dart';
-import 'package:safety_voice/pages/setup_screen.dart';
 
 import 'dart:async';
 import 'dart:math';
@@ -189,11 +188,11 @@ class _SettingScreenState extends State<SettingScreen> {
                         if (!isEditing) ...[
                           // 일반 보기 모드
                           _buildViewWordSection(),
-                          SizedBox(height: 32),
+                          SizedBox(height: 25),
                           _buildViewRecordingSection(),
-                          SizedBox(height: 32),
+                          SizedBox(height: 25),
                           _buildViewEmergencySection(),
-                          SizedBox(height: 48),
+                          SizedBox(height: 30),
                           _buildViewContactSection(),
                         ] else ...[
                           // 편집 모드
