@@ -19,9 +19,6 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   bool isCalendarMode = true;
 
-  final Color calendarBgColor = const Color(0xFFEFF3FF);
-  final Color listBgColor = const Color(0xFFEFF3FF);
-
   final List<String> calendarDays = List.generate(31, (index) => (index + 1).toString());
   final int firstDayOfWeek = 1;
   final DateTime now = DateTime.now();
@@ -44,7 +41,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    final Color backgroundColor = isCalendarMode ? calendarBgColor : listBgColor;
+    const Color backgroundColor = Color(0xFFEFF3FF);
 
     return Scaffold(
       backgroundColor: backgroundColor,

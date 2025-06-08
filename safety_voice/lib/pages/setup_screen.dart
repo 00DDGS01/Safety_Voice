@@ -14,6 +14,7 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
+  bool isEditing = false;
   bool isSafetyEnabled = true; // 초기값 ON
   bool isAlarmEnabled = true; // 초기값 ON
 
@@ -22,35 +23,74 @@ class _SetupScreenState extends State<SetupScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80), // AppBar 높이를 80으로 설정
+        preferredSize: const Size.fromHeight(90),
         child: AppBar(
-          automaticallyImplyLeading: false, // 뒤로가기 버튼 제거
-          title:  Text(
-            '이대광님의 설정 현황',
-              style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: MediaQuery.of(context).size.width * 0.05,
-                  ),
-          ),
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFFEFF3FF),
+          automaticallyImplyLeading: false,
           elevation: 0,
-          actions: [
-          TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SettingsEditScreen()),
-                );
-              },
-              child: const Text(
-                '수정',
-                style: TextStyle(
-                  color: Color(0xFF787878),
-                  fontSize: 15,
-                ),
-              ),
+          flexibleSpace: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: isEditing
+                  ? Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => isEditing = false);
+                          },
+                          child: const Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.black,
+                            size: 24,
+                          ),
+                        ),
+                        const Expanded(
+                          child: Text(
+                            '설정값 수정',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                      ],
+                    )
+                  : Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Center(
+                          child: Text(
+                            '사용자님의 설정 현황',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          child: TextButton(
+                            onPressed: () {
+                              setState(() => isEditing = true);
+                            },
+                            child: const Text(
+                              '수정',
+                              style: TextStyle(
+                                color: Color(0xFF6B73FF),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
             ),
-          ],
+          ),
         ),
       ),
 
