@@ -21,7 +21,7 @@
 
 //   Future<void> _handleSignup() async {
 //     if (!_formKey.currentState!.validate()) return;
-    
+
 //     if (_passwordController.text != _passwordConfirmController.text) {
 //       ScaffoldMessenger.of(context).showSnackBar(
 //         const SnackBar(content: Text('비밀번호가 일치하지 않습니다.')),
@@ -226,7 +226,6 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:safety_voice/pages/login_screen.dart';
 
-
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -239,14 +238,15 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _passwordConfirmController = TextEditingController();
+  final TextEditingController _passwordConfirmController =
+      TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_passwordController.text != _passwordConfirmController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('비밀번호가 일치하지 않습니다.')),
@@ -258,36 +258,34 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/api/auth/signup/'), // Android 에뮬레이터용
-
+        Uri.parse('http://10.0.2.2:8080/api/auth/signup'), // Spring Boot 서버
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'nickname': _nicknameController.text,
-          'username': _usernameController.text,
+          'loginId': _usernameController.text,
           'password': _passwordController.text,
           'location': _locationController.text,
           'email': _emailController.text,
         }),
       );
 
-      if (response.statusCode == 201) {
+      final resBody = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && resBody['success'] == true) {
         if (!mounted) return;
 
-          Navigator.pushReplacement(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (_, __, ___) => const LoginScreen(),
-              transitionDuration: Duration.zero,
-              reverseTransitionDuration: Duration.zero,
-            ),
-          );
-
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('회원가입이 완료되었습니다.')),
+          SnackBar(content: Text(resBody['data'] ?? '회원가입 성공')),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       } else {
-        final error = jsonDecode(response.body)['error'];
-        throw Exception(error ?? '회원가입에 실패했습니다.');
+        final errorMessage =
+            resBody['message'] ?? resBody['error'] ?? '회원가입에 실패했습니다.';
+        throw Exception(errorMessage);
       }
     } catch (e) {
       if (!mounted) return;
