@@ -141,15 +141,15 @@ class _SetupScreenState extends State<SetupScreen> {
                           _buildNotiWordSection(),
                         ] else ...[
                           // 편집 모드
-                          _buildLocationOneSection('안전지대 1번'),
+                          _buildLocationOneSection(),
                           SizedBox(height: 12),            
                           const Divider(color: Color(0xFFCACACA), thickness: 1.0),
                           SizedBox(height: 12),
-                          _buildLocationTwoSection('안전지대 2번'),
+                          _buildLocationTwoSection(),
                           SizedBox(height: 12),            
                           const Divider(color: Color(0xFFCACACA), thickness: 1.0),
                           SizedBox(height: 12),
-                          _buildLocationThreeSection('안전지대 3번'),
+                          _buildLocationThreeSection(),
                           SizedBox(height: 12),            
                           const Divider(color: Color(0xFFCACACA), thickness: 1.0),
                           SizedBox(height: 12),
@@ -628,7 +628,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
 
 // 편집 모드 위젯들
-  Widget _buildLocationOneSection(String safeZone) {
+  Widget _buildLocationOneSection() {
   return Container(
     width: double.infinity,
     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -675,28 +675,21 @@ class _SetupScreenState extends State<SetupScreen> {
               ),
             ),
             const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (_, __, ___) => const MapScreen(), // 🔹 실제 지도 화면 위젯
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6B73FF),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  textStyle: TextStyle(fontSize: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+            ElevatedButton(
+              onPressed: () {
+                // 주소 검색 동작
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF6B73FF),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                textStyle: TextStyle(fontSize: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('주소 검색'),
               ),
+              child: const Text('주소 검색'),
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -711,14 +704,7 @@ class _SetupScreenState extends State<SetupScreen> {
             const SizedBox(width: 12),
             GestureDetector(
               onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => TimeTableModal(
-                    safeZone: safeZone,  // 🔹 넘기는 안전지대 이름
-                    isEditing: true,     // 🔹 작성 모드
-                  ),
-                );
+                // 타임테이블 모달 호출
               },
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -754,7 +740,7 @@ class _SetupScreenState extends State<SetupScreen> {
 }
 
 
- Widget _buildLocationTwoSection(String safeZone) {
+ Widget _buildLocationTwoSection() {
     return Container(
     width: double.infinity,
     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -801,29 +787,21 @@ class _SetupScreenState extends State<SetupScreen> {
               ),
             ),
             const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (_, __, ___) => const MapScreen(), // 🔹 실제 지도 화면 위젯
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6B73FF),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  textStyle: TextStyle(fontSize: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+            ElevatedButton(
+              onPressed: () {
+                // 주소 검색 동작
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF6B73FF),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                textStyle: TextStyle(fontSize: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('주소 검색'),
               ),
-
+              child: const Text('주소 검색'),
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -838,14 +816,7 @@ class _SetupScreenState extends State<SetupScreen> {
             const SizedBox(width: 12),
             GestureDetector(
               onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => TimeTableModal(
-                    safeZone: safeZone,  // 🔹 넘기는 안전지대 이름
-                    isEditing: true,     // 🔹 작성 모드
-                  ),
-                );
+                // 타임테이블 모달 호출
               },
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -882,7 +853,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
   
 
-  Widget _buildLocationThreeSection(String safeZone) {
+  Widget _buildLocationThreeSection() {
     return Container(
     width: double.infinity,
     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -929,28 +900,21 @@ class _SetupScreenState extends State<SetupScreen> {
               ),
             ),
             const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (_, __, ___) => const MapScreen(), // 🔹 실제 지도 화면 위젯
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6B73FF),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  textStyle: TextStyle(fontSize: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+            ElevatedButton(
+              onPressed: () {
+                // 주소 검색 동작
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF6B73FF),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                textStyle: TextStyle(fontSize: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text('주소 검색'),
               ),
+              child: const Text('주소 검색'),
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -965,14 +929,7 @@ class _SetupScreenState extends State<SetupScreen> {
             const SizedBox(width: 12),
             GestureDetector(
               onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => TimeTableModal(
-                    safeZone: safeZone,  // 🔹 넘기는 안전지대 이름
-                    isEditing: true,     // 🔹 작성 모드
-                  ),
-                );
+                // 타임테이블 모달 호출
               },
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1247,4 +1204,3 @@ class _TimeTableModalState extends State<TimeTableModal> {
     );
   }
 }
-

@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart'; // ✅ 추가
-import 'package:safety_voice/pages/map_screen.dart';
-import 'package:safety_voice/pages/setup_screen.dart';
-import 'package:safety_voice/pages/signup_screen.dart';
-import 'package:safety_voice/pages/word_setting.dart';
-import 'pages/main_screen.dart';
-import 'pages/login_screen.dart';
-import 'pages/timetable_screen.dart';
+// import 'package:safety_voice/pages/map_screen.dart';
+// import 'package:safety_voice/pages/setup_screen.dart';
+// import 'package:safety_voice/pages/signup_screen.dart';
+// import 'package:safety_voice/pages/word_setting.dart';
+import 'package:safety_voice/pages/splash_screen.dart';
+// import 'pages/main_screen.dart';
+// import 'pages/login_screen.dart';
+// import 'pages/timetable_screen.dart';
 import 'package:safety_voice/services/trigger_listener.dart';
 
-import 'package:safety_voice/pages/listHome.dart';
-import 'package:safety_voice/pages/calendarHome.dart';
-import 'package:safety_voice/pages/nonamed.dart';
-import 'package:safety_voice/pages/caseFile.dart';
-import 'package:safety_voice/pages/stopRecord.dart';
+// import 'package:safety_voice/pages/home.dart';
+// import 'package:safety_voice/pages/nonamed.dart';
+// import 'package:safety_voice/pages/caseFile.dart';
+// import 'package:safety_voice/pages/stopRecord.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,19 +54,19 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) {
           Future.microtask(() => triggerListener.init(context));
-          return const MainScreen();
+          return const SplashScreen();
         },
-        '/login': (context) => const LoginScreen(),
-        '/timetable': (context) => const TimeTableDemo(),
-        '/signup': (context) => const SignupScreen(),
-        '/setup': (context) => const SetupScreen(),
-        '/safezone': (context) => const SettingScreen(),
-        '/listhome': (context) => const ListHome(),
-        '/calendarhome': (context) => const CalendarHome(),
-        '/nonamed': (context) => const Nonamed(),
-        '/casefile': (context) => const CaseFile(),
-        '/stoprecord': (context) => const StopRecord(),
-        '/mapscreen': (context) => MapScreen(),
+        // '/main': (context) => const MainScreen(),
+        // '/login': (context) => const LoginScreen(),
+        // '/timetable': (context) => const TimeTableDemo(),
+        // '/signup': (context) => const SignupScreen(),
+        // '/setup': (context) => const SetupScreen(),
+        // '/safezone': (context) => const SettingScreen(),
+        // '/home': (context) => const Home(),
+        // '/nonamed': (context) => const Nonamed(),
+        // '/casefile': (context) => const CaseFile(),
+        // '/stoprecord': (context) => const StopRecord(),
+        // '/mapscreen': (context) => MapScreen(),
       },
     );
   }

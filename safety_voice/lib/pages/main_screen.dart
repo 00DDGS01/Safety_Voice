@@ -1,28 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:safety_voice/pages/signup_screen.dart';
+import 'package:safety_voice/pages/login_screen.dart';
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
+  double _logoOpacity = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 로고 페이드 인 효과 시작
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _logoOpacity = 1.0;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size; // 화면 크기 가져오기
-    final double logoHeight = size.height * 0.6; // 화면 높이의 35% 크기
-    final double buttonWidth = size.width * 0.75; // 화면 너비의 80%
-    final double buttonHeight = size.height * 0.07; // 화면 높이의 6%
+    final size = MediaQuery.of(context).size;
+    final double logoHeight = size.height * 0.6;
+    final double buttonWidth = size.width * 0.75;
+    final double buttonHeight = size.height * 0.07;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFEFF3FF),
       body: SafeArea(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(height: size.height * 0.1),
-              Image.asset(
-                'assets/logo.png',
-                height: logoHeight,
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 1500),
+                opacity: _logoOpacity,
+                child: Image.asset(
+                  'assets/logo.png',
+                  height: logoHeight - 130,
+                ),
               ),
-              const Spacer(),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
                 child: Column(
@@ -31,7 +57,16 @@ class MainScreen extends StatelessWidget {
                       width: buttonWidth,
                       height: buttonHeight,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(context, '/login'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder: (_, __, ___) => const LoginScreen(),
+                              transitionDuration: Duration.zero,
+                              reverseTransitionDuration: Duration.zero,
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6B7AFF),
                           shape: RoundedRectangleBorder(
@@ -49,16 +84,26 @@ class MainScreen extends StatelessWidget {
                       width: buttonWidth,
                       height: buttonHeight,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(context, '/signup'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder: (_, __, ___) => const SignupScreen(),
+                              transitionDuration: Duration.zero,
+                              reverseTransitionDuration: Duration.zero,
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6B7AFF),
+                          backgroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
+                            side: const BorderSide(color: Color(0xFF6B7AFF)),
                           ),
                         ),
                         child: const Text(
                           '회원가입',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                          style: TextStyle(fontSize: 16, color: Color(0xFF6B7AFF)),
                         ),
                       ),
                     ),

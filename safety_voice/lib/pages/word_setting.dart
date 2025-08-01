@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
+import 'package:safety_voice/pages/home.dart';
+
 import 'dart:async';
 import 'dart:math';
 
@@ -88,77 +90,88 @@ class _SettingScreenState extends State<SettingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const Color backgroundColor = Color(0xFFEFF3FF);
+    
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(90),
         child: AppBar(
-          backgroundColor: Color(0xFFEFF3FF),
+          backgroundColor: const Color(0xFFEFF3FF),
           automaticallyImplyLeading: false,
           elevation: 0,
           flexibleSpace: SafeArea(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (isEditing) ...[
-                    GestureDetector(
-                      onTap: () {
-                        setState(() => isEditing = false);
-                      },
-                      child: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.black,
-                        size: 24,
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        '설정값 수정',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: isEditing
+                  ? Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => isEditing = false);
+                          },
+                          child: const Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.black,
+                            size: 24,
+                          ),
                         ),
-                      ),
-                    ),
-                    SizedBox(width: 24), // 뒤로가기 버튼과 균형 맞추기
-                  ] else ...[
-                    // 가운데 정렬을 위해 Expanded로 감싸기
-                    Expanded(
-                      child: Text(
-                        '사용자의 설정 현황',
-                        textAlign: TextAlign.center, // 가운데 정렬 추가
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.black,
+                        const Expanded(
+                          child: Text(
+                            '설정값 수정',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.black,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        setState(() => isEditing = true);
-                      },
-                      child: Text(
-                        '수정',
-                        style: TextStyle(
-                          color: Color(0xFF6B73FF),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
+                        const SizedBox(width: 24),
+                      ],
+                    )
+                  : Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Center(
+                          child: Text(
+                            '사용자님의 설정 현황',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.black,
+                            ),
+                          ),
                         ),
-                      ),
+                        Positioned(
+                          right: 0,
+                          child: TextButton(
+                            onPressed: () {
+                              setState(() => isEditing = true);
+                            },
+                            child: const Text(
+                              '수정',
+                              style: TextStyle(
+                                color: Color(0xFF6B73FF),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ],
-              ),
             ),
           ),
         ),
       ),
+
+
+
+
+
+
+
       body: Stack(
         children: [
           Column(
@@ -175,11 +188,11 @@ class _SettingScreenState extends State<SettingScreen> {
                         if (!isEditing) ...[
                           // 일반 보기 모드
                           _buildViewWordSection(),
-                          SizedBox(height: 32),
+                          SizedBox(height: 25),
                           _buildViewRecordingSection(),
-                          SizedBox(height: 32),
+                          SizedBox(height: 25),
                           _buildViewEmergencySection(),
-                          SizedBox(height: 48),
+                          SizedBox(height: 30),
                           _buildViewContactSection(),
                         ] else ...[
                           // 편집 모드
@@ -229,82 +242,66 @@ class _SettingScreenState extends State<SettingScreen> {
           if (isLearning) _buildLearningModal(),
         ],
       ),
-      bottomNavigationBar: Container(
-        height: 90,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Colors.grey[300]!, width: 1),
-          ),
-        ),
-        child: SafeArea(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/listhome'),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.list_alt,
-                      size: 28,
-                      color: Colors.grey[600],
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '녹음 목록',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
+      bottomNavigationBar: SizedBox(
+        height: 80, // 하단바 높이 증가
+        child: Material(
+          elevation: 20, // 그림자 더 짙게
+          color: const Color.fromARGB(157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF), // 하단바 배경 흰색
+              border: Border(
+                top: BorderSide(
+                  color: const Color.fromARGB(255, 177, 177, 177), // 테두리 색 지정
+                  width: 2.0,
                 ),
               ),
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/safezone'),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.mic,
-                      size: 28,
-                      color: Color(0xFF6B73FF),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '단어 인식',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B73FF),
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+            child: BottomAppBar(
+              color: Colors.transparent, // 배경 투명 (상위 Container에서 처리)
+              shape: const CircularNotchedRectangle(),
+              notchMargin: 8.0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const Home(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Image.asset('assets/home/recordingList.png', fit: BoxFit.contain),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Image.asset('assets/home/wordRecognition_.png', fit: BoxFit.contain),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const SetupScreen(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Image.asset('assets/home/safeZone.png', fit: BoxFit.contain),
+                  ),
+                ],
+
               ),
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/setup'),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.home,
-                      size: 28,
-                      color: Colors.grey[600],
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '안전 지대',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -395,7 +392,7 @@ class _SettingScreenState extends State<SettingScreen> {
               Text(
                 '녹음 횟수',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -409,7 +406,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   textAlign: TextAlign.center,
                   keyboardType: TextInputType.number,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
@@ -433,7 +430,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(width: 10),
-              Text('초 안에', style: TextStyle(fontSize: 20, color: Colors.black,   fontWeight: FontWeight.w700)),
+              Text('초 안에', style: TextStyle(fontSize: 15, color: Colors.black,   fontWeight: FontWeight.w700)),
               SizedBox(width: 22),
               Container(
                 width: 40,
@@ -443,7 +440,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   textAlign: TextAlign.center,
                   keyboardType: TextInputType.number,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
@@ -467,7 +464,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(width: 5),
-              Text('회', style: TextStyle(fontSize: 20, color: Colors.black ,  fontWeight: FontWeight.w700)),
+              Text('회', style: TextStyle(fontSize: 15, color: Colors.black ,  fontWeight: FontWeight.w700)),
             ],
           ),
         ],
@@ -555,14 +552,14 @@ class _SettingScreenState extends State<SettingScreen> {
                   size: Size(double.infinity, 60),
                 ),
               ),
-              SizedBox(height: 30),
+              //SizedBox(height: 30),
               
               // 상태 텍스트
               Text(
                 learningStatus,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   color: Colors.black,
                   fontWeight: FontWeight.w500,
                 ),
@@ -584,7 +581,7 @@ class _SettingScreenState extends State<SettingScreen> {
           Text(
             '현재 단어',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 16,
               color: Colors.black,
               fontWeight: FontWeight.w700,
             ),
@@ -599,7 +596,7 @@ class _SettingScreenState extends State<SettingScreen> {
             child: Text(
               wordController.text,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 color: Color(0xFF6B73FF),
                 fontWeight: FontWeight.w600,
               ),
@@ -619,7 +616,7 @@ class _SettingScreenState extends State<SettingScreen> {
           Text(
             '녹음 횟수',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 16,
               color: Colors.black,
               fontWeight: FontWeight.w700,
             ),
@@ -636,14 +633,14 @@ class _SettingScreenState extends State<SettingScreen> {
                 child: Text(
                   recordSecondsController.text,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               SizedBox(width: 10),
-              Text('초 안에', style: TextStyle(fontSize: 20, color: Colors.black,fontWeight: FontWeight.w700)),
+              Text('초 안에', style: TextStyle(fontSize: 15, color: Colors.black,fontWeight: FontWeight.w700)),
               SizedBox(width: 22),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
@@ -654,14 +651,14 @@ class _SettingScreenState extends State<SettingScreen> {
                 child: Text(
                   recordCountController.text,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               SizedBox(width: 5),
-              Text('회', style: TextStyle(fontSize: 20, color: Colors.black,fontWeight: FontWeight.w700,)),
+              Text('회', style: TextStyle(fontSize: 15, color: Colors.black,fontWeight: FontWeight.w700,)),
             ],
           ),
         ],
@@ -678,7 +675,7 @@ class _SettingScreenState extends State<SettingScreen> {
           Text(
             '비상 연락 횟수',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 16,
               color: Colors.black,
               fontWeight: FontWeight.w700,
             ),
@@ -695,14 +692,14 @@ class _SettingScreenState extends State<SettingScreen> {
                 child: Text(
                   emergencySecondsController.text,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               SizedBox(width: 10),
-              Text('초 안에', style: TextStyle(fontSize: 20, color: Colors.black,fontWeight: FontWeight.w700)),
+              Text('초 안에', style: TextStyle(fontSize: 15, color: Colors.black,fontWeight: FontWeight.w700)),
               SizedBox(width: 22),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 15, vertical:10),
@@ -713,14 +710,14 @@ class _SettingScreenState extends State<SettingScreen> {
                 child: Text(
                   emergencyCountController.text,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               SizedBox(width: 5),
-              Text('회', style: TextStyle(fontSize: 20, color: Colors.black,fontWeight: FontWeight.w700)),
+              Text('회', style: TextStyle(fontSize: 15, color: Colors.black,fontWeight: FontWeight.w700)),
             ],
           ),
         ],
@@ -736,14 +733,14 @@ class _SettingScreenState extends State<SettingScreen> {
         Container(
           width: double.infinity,
           margin: EdgeInsets.only(bottom: 0),
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: Row(
             children: [
               Spacer(),
               Text(
                 '1번',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -751,7 +748,7 @@ class _SettingScreenState extends State<SettingScreen> {
               SizedBox(width: 10),
               Container(
                 width: 160,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 decoration: BoxDecoration(
                   color: Color(0xFFE8EAFF),
                   borderRadius: BorderRadius.circular(8),
@@ -760,7 +757,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   child: Text(
                     phoneControllers[0].text,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 13,
                       color: Color(0xFF6B73FF),
                       fontWeight: FontWeight.w600,
                     ),
@@ -774,13 +771,13 @@ class _SettingScreenState extends State<SettingScreen> {
         Container(
           width: double.infinity,
           margin: EdgeInsets.only(bottom: 0),
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: Row(
             children: [
               Text(
                 '비상 연락망',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -789,7 +786,7 @@ class _SettingScreenState extends State<SettingScreen> {
               Text(
                 '2번',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -797,7 +794,7 @@ class _SettingScreenState extends State<SettingScreen> {
               SizedBox(width:10),
               Container(
                 width: 160,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 decoration: BoxDecoration(
                   color: Color(0xFFE8EAFF),
                   borderRadius: BorderRadius.circular(8),
@@ -806,7 +803,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   child: Text(
                     phoneControllers[1].text,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 13,
                       color: Color(0xFF6B73FF),
                       fontWeight: FontWeight.w600,
                     ),
@@ -819,14 +816,14 @@ class _SettingScreenState extends State<SettingScreen> {
         // 3번 - 세 번째 줄 (3번 + 전화번호)
         Container(
           width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: Row(
             children: [
               Spacer(),
               Text(
                 '3번',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -834,7 +831,7 @@ class _SettingScreenState extends State<SettingScreen> {
               SizedBox(width: 10),
               Container(
                 width: 160,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 decoration: BoxDecoration(
                   color: Color(0xFFE8EAFF),
                   borderRadius: BorderRadius.circular(8),
@@ -843,7 +840,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   child: Text(
                     phoneControllers[2].text,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 13,
                       color: Color(0xFF6B73FF),
                       fontWeight: FontWeight.w600,
                     ),
@@ -870,7 +867,7 @@ class _SettingScreenState extends State<SettingScreen> {
               Text(
                 '현재 단어',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -920,7 +917,7 @@ class _SettingScreenState extends State<SettingScreen> {
               child: Text(
                 isLearning ? '학습중' : (isLearningCompleted ? '학습완료!' : '학습하기 >'),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   color: isLearning ? Colors.green : (isLearningCompleted ? Colors.blue : Colors.red),
                   fontWeight: FontWeight.w500,
                 ),
@@ -944,7 +941,7 @@ class _SettingScreenState extends State<SettingScreen> {
               Text(
                 '비상 연락 횟수',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -958,7 +955,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   textAlign: TextAlign.center,
                   keyboardType: TextInputType.number,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
@@ -982,7 +979,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(width: 10),
-              Text('초 안에', style: TextStyle(fontSize: 20, color: Colors.black,  fontWeight: FontWeight.w700)),
+              Text('초 안에', style: TextStyle(fontSize: 15, color: Colors.black,  fontWeight: FontWeight.w700)),
               SizedBox(width: 22),
               Container(
                 width: 40,
@@ -992,7 +989,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   textAlign: TextAlign.center,
                   keyboardType: TextInputType.number,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
@@ -1016,7 +1013,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(width: 5),
-              Text('회', style: TextStyle(fontSize: 20, color: Colors.black,  fontWeight: FontWeight.w700)),
+              Text('회', style: TextStyle(fontSize: 15, color: Colors.black,  fontWeight: FontWeight.w700)),
             ],
           ),
         ],
@@ -1039,7 +1036,7 @@ class _SettingScreenState extends State<SettingScreen> {
               Text(
                 '1번',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1047,13 +1044,13 @@ class _SettingScreenState extends State<SettingScreen> {
               SizedBox(width: 10),
               Container(
                 width: 160,
-                height: 40,
+                height: 45,
                 child: TextField(
                   controller: phoneControllers[0],
                   keyboardType: TextInputType.phone,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
@@ -1072,7 +1069,7 @@ class _SettingScreenState extends State<SettingScreen> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                   ),
                 ),
               ),
@@ -1089,7 +1086,7 @@ class _SettingScreenState extends State<SettingScreen> {
               Text(
                 '비상 연락망',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1098,7 +1095,7 @@ class _SettingScreenState extends State<SettingScreen> {
               Text(
                 '2번',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1107,13 +1104,13 @@ class _SettingScreenState extends State<SettingScreen> {
               
               Container(
                 width: 160,
-                height: 40,
+                height: 45,
                 child: TextField(
                   controller: phoneControllers[1],
                   keyboardType: TextInputType.phone,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
@@ -1132,7 +1129,7 @@ class _SettingScreenState extends State<SettingScreen> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                   ),
                 ),
               ),
@@ -1149,7 +1146,7 @@ class _SettingScreenState extends State<SettingScreen> {
               Text(
                 '3번',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 16,
                   color: Colors.black,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1157,13 +1154,13 @@ class _SettingScreenState extends State<SettingScreen> {
               SizedBox(width: 10),
               Container(
                 width: 160,
-                height: 40,
+                height: 45,
                 child: TextField(
                   controller: phoneControllers[2],
                   keyboardType: TextInputType.phone,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: Color(0xFF6B73FF),
                     fontWeight: FontWeight.w600,
                   ),
@@ -1182,7 +1179,7 @@ class _SettingScreenState extends State<SettingScreen> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                   ),
                 ),
               ),

@@ -135,12 +135,12 @@ class _NonamedState extends State<Nonamed> {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: AppBar(
-          backgroundColor: const Color.fromARGB(255, 64, 84, 144),
+          backgroundColor: const Color.fromARGB(255, 239, 243, 255),
           centerTitle: true,
           automaticallyImplyLeading: false,
           leading: IconButton(
             icon: Image.asset('assets/images/back.png', height: 24),
-            onPressed: () => Navigator.pushNamed(context, '/listhome'),
+            onPressed: () => Navigator.pop(context),
           ),
           title: Text(
             "이름 없는 파일",
@@ -190,7 +190,7 @@ class _NonamedState extends State<Nonamed> {
                     size: 36,
                     color: _currentPlayingFile == file["path"]
                         ? Colors.red
-                        : Colors.blue,
+                        : Color.fromARGB(255, 87, 123, 229),
                   ),
                 ),
 
@@ -274,7 +274,9 @@ class _NonamedState extends State<Nonamed> {
                           onTap: () => _summarizeWithGPT(file),
                           child: const Text(
                             "GPT로 요약하기",
-                            style: TextStyle(fontSize: 12, color: Colors.blue),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Color.fromARGB(255, 87, 123, 229)),
                           ),
                         ),
                       ],
@@ -322,13 +324,17 @@ class _NonamedState extends State<Nonamed> {
   }
 
   Future<void> _summarizeWithGPT(Map<String, dynamic> file) async {
-    // TODO: Whisper → GPT API 연동
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const AlertDialog(
-        title: Text('요약 중...'),
-        content: SizedBox(
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color.fromARGB(255, 240, 244, 255),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          '요약 중...',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const SizedBox(
           height: 50,
           child: Center(child: CircularProgressIndicator()),
         ),
@@ -344,7 +350,13 @@ class _NonamedState extends State<Nonamed> {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('요약 결과'),
+          backgroundColor: Color.fromARGB(255, 240, 244, 255),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text(
+            '요약 결과',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Text(summary),
           actions: [
             TextButton(
@@ -359,7 +371,13 @@ class _NonamedState extends State<Nonamed> {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('오류 발생'),
+          backgroundColor: const Color.fromARGB(218, 255, 240, 240),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text(
+            '오류 발생',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Text(e.toString()),
           actions: [
             TextButton(
