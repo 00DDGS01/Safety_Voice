@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:safety_voice/pages/home.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -62,6 +63,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // JWT 토큰 저장 (shared_preferences 사용)
         final token = data['data']['token'];
+
+        // SharedPreferences에 JWT 저장
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('jwt_token', token);
+
         print("로그인 성공, JWT : $token");
 
         if (!mounted) return;
