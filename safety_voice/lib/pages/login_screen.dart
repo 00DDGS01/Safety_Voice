@@ -1,6 +1,7 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:safety_voice/pages/home.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,15 +27,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void _checkFormValidity() {
     setState(() {
       _isFormValid = _usernameController.text.trim().isNotEmpty &&
-                    _passwordController.text.trim().isNotEmpty;
+          _passwordController.text.trim().isNotEmpty;
     });
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   Future<void> _login() async {
@@ -54,25 +48,46 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 간단한 로딩 시뮬레이션
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:8080/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'loginId': username, //loginId 필드로 전송
+          'password': password,
+        }),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
 
-    // 백엔드 연동 없이 홈화면으로 이동
-  if (mounted) {
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const Home(),
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ),
-    );
-  }
+        // JWT 토큰 저장 (shared_preferences 사용)
+        final token = data['data']['token'];
+        print("로그인 성공, JWT : $token");
 
-
-    setState(() {
-      _isLoading = false;
-    });
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const Home(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+      } else {
+        final error = jsonDecode(response.body);
+        setState(() {
+          _errorMessage = error['message'] ?? '로그인 실패';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = '서버 연결 오류: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -86,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 120),
-                
+
                 // 로그인 타이틀
                 const Text(
                   '로그인',
@@ -96,9 +111,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.black,
                   ),
                 ),
-                
+
                 const SizedBox(height: 60),
-                
+
                 // 아이디 라벨
                 const Align(
                   alignment: Alignment.centerLeft,
@@ -112,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                
+
                 // 아이디 입력 필드
                 Container(
                   decoration: BoxDecoration(
@@ -137,9 +152,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // 비밀번호 라벨
                 const Align(
                   alignment: Alignment.centerLeft,
@@ -153,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                
+
                 // 비밀번호 입력 필드
                 Container(
                   decoration: BoxDecoration(
@@ -179,9 +194,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // 아이디 찾기 | 비밀번호 찾기 버튼들 (우측 정렬)
                 Align(
                   alignment: Alignment.centerRight,
@@ -224,9 +239,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // 로그인 버튼
                 Container(
                   width: double.infinity,
@@ -235,7 +250,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _isFormValid ? _login : null,
                     // onPressed: () => Navigator.pushReplacementNamed(context, '/calenda'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isFormValid 
+                      backgroundColor: _isFormValid
                           ? const Color(0xFF577BE5) // 파란색 (입력 완료시)
                           : Colors.grey[400], // 회색 (기본)
                       foregroundColor: Colors.white,
@@ -263,9 +278,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // 회원가입 텍스트
                 RichText(
                   text: const TextSpan(
@@ -285,7 +300,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-                
+
                 // 에러 메시지
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 20),
