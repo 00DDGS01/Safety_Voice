@@ -1,40 +1,60 @@
+import 'dart:io';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/home.dart';
 
 import 'dart:async';
 import 'dart:math';
 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http_parser/http_parser.dart';
+
+final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+bool _isRecorderInitialized = false;
+String? _recordedFilePath;
+
+Future<void> _initRecorder() async {
+  final status = await Permission.microphone.request();
+  if (!status.isGranted) {
+    throw Exception('마이크 권한이 필요합니다.');
+  }
+  await _recorder.openRecorder();
+  _isRecorderInitialized = true;
+}
+
 class WaveformPainter extends CustomPainter {
   final List<double> amplitudes;
   final int learningStep;
-  
+
   WaveformPainter({required this.amplitudes, this.learningStep = 1});
 
   @override
   void paint(Canvas canvas, Size size) {
     final purplePaint = Paint()
-      ..color = Color(0xFF8B80F8)  // 보라색
+      ..color = Color(0xFF8B80F8) // 보라색
       ..strokeWidth = 6.0
       ..strokeCap = StrokeCap.round;
 
     final greyPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.3)  // 회색
+      ..color = Colors.grey.withOpacity(0.3) // 회색
       ..strokeWidth = 6.0
       ..strokeCap = StrokeCap.round;
 
     final width = size.width;
     final height = size.height;
     final barWidth = (width / amplitudes.length) * 0.6; // 막대 사이 간격을 위해 0.6 곱함
-    final spacing = (width / amplitudes.length) * 0.4;  // 막대 사이 간격
-    
+    final spacing = (width / amplitudes.length) * 0.4; // 막대 사이 간격
+
     for (var i = 0; i < amplitudes.length; i++) {
       final x = i * (barWidth + spacing);
       final centerY = height / 2;
-      final barHeight = amplitudes[i] * height * 0.7;  // 전체 높이의 70%만 사용
-      
+      final barHeight = amplitudes[i] * height * 0.7; // 전체 높이의 70%만 사용
+
       // 학습 단계에 따라 색상 결정
       Paint paint;
       if (learningStep == 1) {
@@ -44,10 +64,10 @@ class WaveformPainter extends CustomPainter {
         // 두 번째 단계: 처음 1/3은 보라색, 나머지는 회색
         paint = i < amplitudes.length / 3 ? purplePaint : greyPaint;
       }
-      
+
       canvas.drawLine(
-        Offset(x + barWidth/2, centerY - barHeight / 2),
-        Offset(x + barWidth/2, centerY + barHeight / 2),
+        Offset(x + barWidth / 2, centerY - barHeight / 2),
+        Offset(x + barWidth / 2, centerY + barHeight / 2),
         paint,
       );
     }
@@ -76,11 +96,16 @@ class _SettingScreenState extends State<SettingScreen> {
   int learningStep = 1; // 1: 첫 번째 단계, 2: 두 번째 단계
   Random random = Random();
 
-  final TextEditingController wordController = TextEditingController(text: '잠만');
-  final TextEditingController recordSecondsController = TextEditingController(text: '2');
-  final TextEditingController recordCountController = TextEditingController(text: '3');
-  final TextEditingController emergencySecondsController = TextEditingController(text: '4');
-  final TextEditingController emergencyCountController = TextEditingController(text: '5');
+  final TextEditingController wordController =
+      TextEditingController(text: '잠만');
+  final TextEditingController recordSecondsController =
+      TextEditingController(text: '2');
+  final TextEditingController recordCountController =
+      TextEditingController(text: '3');
+  final TextEditingController emergencySecondsController =
+      TextEditingController(text: '4');
+  final TextEditingController emergencyCountController =
+      TextEditingController(text: '5');
   final List<TextEditingController> phoneControllers = List.generate(
     3,
     (index) => TextEditingController(
@@ -88,10 +113,43 @@ class _SettingScreenState extends State<SettingScreen> {
     ),
   );
 
+  Future<void> _uploadToServer(File wavFile) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jwt = prefs.getString('jwt_token');
+    final userId = prefs.getString('user_id');
+
+    if (jwt == null) {
+      print('JWT 토큰이 없습니다. 로그인 필요.');
+      return;
+    }
+
+    if (userId == null || userId.isEmpty) {
+      print('user_id가 없습니다.');
+      return;
+    }
+
+    final uri = Uri.parse('http://10.0.2.2:8080/api/voice/train');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $jwt'
+      ..files.add(await http.MultipartFile.fromPath(
+        'file',
+        wavFile.path,
+        contentType: MediaType('audio', 'wav'),
+      ));
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      print('업로드 성공');
+    } else {
+      print('업로드 실패: ${response.statusCode}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color backgroundColor = Color(0xFFEFF3FF);
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
@@ -165,13 +223,6 @@ class _SettingScreenState extends State<SettingScreen> {
           ),
         ),
       ),
-
-
-
-
-
-
-
       body: Stack(
         children: [
           Column(
@@ -184,7 +235,6 @@ class _SettingScreenState extends State<SettingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 20),
-                        
                         if (!isEditing) ...[
                           // 일반 보기 모드
                           _buildViewWordSection(),
@@ -229,7 +279,6 @@ class _SettingScreenState extends State<SettingScreen> {
                             ),
                           ),
                         ],
-                        
                         SizedBox(height: 120),
                       ],
                     ),
@@ -246,7 +295,8 @@ class _SettingScreenState extends State<SettingScreen> {
         height: 80, // 하단바 높이 증가
         child: Material(
           elevation: 20, // 그림자 더 짙게
-          color: const Color.fromARGB(157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
+          color: const Color.fromARGB(
+              157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
           child: Container(
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF), // 하단바 배경 흰색
@@ -276,13 +326,14 @@ class _SettingScreenState extends State<SettingScreen> {
                       );
                     },
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Image.asset('assets/home/recordingList.png', fit: BoxFit.contain),
+                    child: Image.asset('assets/home/recordingList.png',
+                        fit: BoxFit.contain),
                   ),
                   TextButton(
-                    onPressed: () {
-                    },
+                    onPressed: () {},
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Image.asset('assets/home/wordRecognition_.png', fit: BoxFit.contain),
+                    child: Image.asset('assets/home/wordRecognition_.png',
+                        fit: BoxFit.contain),
                   ),
                   TextButton(
                     onPressed: () {
@@ -296,10 +347,10 @@ class _SettingScreenState extends State<SettingScreen> {
                       );
                     },
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Image.asset('assets/home/safeZone.png', fit: BoxFit.contain),
+                    child: Image.asset('assets/home/safeZone.png',
+                        fit: BoxFit.contain),
                   ),
                 ],
-
               ),
             ),
           ),
@@ -309,29 +360,43 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
   // 학습 시작
-  void _startLearning() {
+  void _startLearning() async {
+    await _initRecorder();
+
     setState(() {
       isLearning = true;
       learningStep = 1;
       learningStatus = "학습할 단어를 말해주세요";
     });
-    
+
     // 웨이브폼 애니메이션 시작
     _startWaveformAnimation();
-    
+
     // 3초 후 두 번째 단계로 전환
-    Timer(Duration(seconds: 3), () {
+    Timer(Duration(seconds: 3), () async {
       if (isLearning) {
         setState(() {
           learningStep = 2;
           learningStatus = "말하는 중...";
         });
+
+        final dir = await getApplicationDocumentsDirectory();
+        _recordedFilePath = '${dir.path}/learning.wav';
+
+        await _recorder.startRecorder(
+          toFile: _recordedFilePath,
+          codec: Codec.pcm16WAV,
+          sampleRate: 16000,
+          numChannels: 1,
+        );
       }
     });
-    
-    // 6초 후 학습 완료
-    Timer(Duration(seconds: 6), () {
+
+    // 6초 후 녹음 종료 및 fastapi 서버로 전송
+    Timer(Duration(seconds: 6), () async {
       if (isLearning) {
+        await _recorder.stopRecorder();
+
         setState(() {
           isLearning = false;
           isLearningCompleted = true;
@@ -339,12 +404,22 @@ class _SettingScreenState extends State<SettingScreen> {
           learningStatus = "학습할 단어를 말해주세요";
         });
         _timer?.cancel();
+
+        if (_recordedFilePath != null) {
+          await _uploadToServer(File(_recordedFilePath!));
+        }
       }
     });
   }
 
   // 학습 중지
-  void _stopLearning() {
+  void _stopLearning() async {
+    try {
+      if (_isRecorderInitialized) {
+        await _recorder.stopRecorder();
+      }
+    } catch (_) {}
+    if (!mounted) return;
     setState(() {
       isLearning = false;
       learningStep = 1;
@@ -357,11 +432,11 @@ class _SettingScreenState extends State<SettingScreen> {
   void _startWaveformAnimation() {
     _timer?.cancel();
     _timer = Timer.periodic(Duration(milliseconds: 100), (timer) {
-      if (!isLearning) {
+      if (!isLearning || !mounted) {
         timer.cancel();
         return;
       }
-      
+
       setState(() {
         for (int i = 0; i < waveformData.length; i++) {
           if (learningStep == 1) {
@@ -415,22 +490,29 @@ class _SettingScreenState extends State<SettingScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
               SizedBox(width: 10),
-              Text('초 안에', style: TextStyle(fontSize: 15, color: Colors.black,   fontWeight: FontWeight.w700)),
+              Text('초 안에',
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700)),
               SizedBox(width: 22),
               Container(
                 width: 40,
@@ -449,22 +531,29 @@ class _SettingScreenState extends State<SettingScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
               SizedBox(width: 5),
-              Text('회', style: TextStyle(fontSize: 15, color: Colors.black ,  fontWeight: FontWeight.w700)),
+              Text('회',
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700)),
             ],
           ),
         ],
@@ -512,7 +601,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ],
               ),
               SizedBox(height: 10),
-              
+
               // 마이크 아이콘 (빨간 원형 배경)
               Container(
                 width: 100,
@@ -539,7 +628,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(height: 30),
-              
+
               // 웨이브폼
               Container(
                 height: 60,
@@ -553,7 +642,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               //SizedBox(height: 30),
-              
+
               // 상태 텍스트
               Text(
                 learningStatus,
@@ -640,7 +729,11 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(width: 10),
-              Text('초 안에', style: TextStyle(fontSize: 15, color: Colors.black,fontWeight: FontWeight.w700)),
+              Text('초 안에',
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700)),
               SizedBox(width: 22),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
@@ -658,7 +751,12 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(width: 5),
-              Text('회', style: TextStyle(fontSize: 15, color: Colors.black,fontWeight: FontWeight.w700,)),
+              Text('회',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                  )),
             ],
           ),
         ],
@@ -699,10 +797,14 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(width: 10),
-              Text('초 안에', style: TextStyle(fontSize: 15, color: Colors.black,fontWeight: FontWeight.w700)),
+              Text('초 안에',
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700)),
               SizedBox(width: 22),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 15, vertical:10),
+                padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                 decoration: BoxDecoration(
                   color: Color(0xFFE8EAFF),
                   borderRadius: BorderRadius.circular(8),
@@ -717,7 +819,11 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(width: 5),
-              Text('회', style: TextStyle(fontSize: 15, color: Colors.black,fontWeight: FontWeight.w700)),
+              Text('회',
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700)),
             ],
           ),
         ],
@@ -791,7 +897,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              SizedBox(width:10),
+              SizedBox(width: 10),
               Container(
                 width: 160,
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -886,22 +992,27 @@ class _SettingScreenState extends State<SettingScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: '잠만',
-                    hintStyle: TextStyle(color: Color(0xFF6B73FF).withOpacity(0.5)),
+                    hintStyle:
+                        TextStyle(color: Color(0xFF6B73FF).withOpacity(0.5)),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
               ),
@@ -918,7 +1029,9 @@ class _SettingScreenState extends State<SettingScreen> {
                 isLearning ? '학습중' : (isLearningCompleted ? '학습완료!' : '학습하기 >'),
                 style: TextStyle(
                   fontSize: 12,
-                  color: isLearning ? Colors.green : (isLearningCompleted ? Colors.blue : Colors.red),
+                  color: isLearning
+                      ? Colors.green
+                      : (isLearningCompleted ? Colors.blue : Colors.red),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -964,22 +1077,29 @@ class _SettingScreenState extends State<SettingScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
               SizedBox(width: 10),
-              Text('초 안에', style: TextStyle(fontSize: 15, color: Colors.black,  fontWeight: FontWeight.w700)),
+              Text('초 안에',
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700)),
               SizedBox(width: 22),
               Container(
                 width: 40,
@@ -998,22 +1118,29 @@ class _SettingScreenState extends State<SettingScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
               SizedBox(width: 5),
-              Text('회', style: TextStyle(fontSize: 15, color: Colors.black,  fontWeight: FontWeight.w700)),
+              Text('회',
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700)),
             ],
           ),
         ],
@@ -1059,17 +1186,21 @@ class _SettingScreenState extends State<SettingScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                   ),
                 ),
               ),
@@ -1101,7 +1232,6 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
               ),
               SizedBox(width: 10),
-              
               Container(
                 width: 160,
                 height: 45,
@@ -1119,17 +1249,21 @@ class _SettingScreenState extends State<SettingScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                   ),
                 ),
               ),
@@ -1169,17 +1303,21 @@ class _SettingScreenState extends State<SettingScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                   ),
                 ),
               ),
@@ -1201,6 +1339,11 @@ class _SettingScreenState extends State<SettingScreen> {
     for (var controller in phoneControllers) {
       controller.dispose();
     }
+    try {
+      if (_isRecorderInitialized) {
+        _recorder.closeRecorder();
+      }
+    } catch (_) {}
     super.dispose();
   }
 }
