@@ -3,7 +3,7 @@ import 'package:permission_handler/permission_handler.dart'; // ✅ 추가
 // import 'package:safety_voice/pages/map_screen.dart';
 // import 'package:safety_voice/pages/setup_screen.dart';
 // import 'package:safety_voice/pages/signup_screen.dart';
-// import 'package:safety_voice/pages/word_setting.dart';
+import 'package:safety_voice/pages/word_setting.dart';
 import 'package:safety_voice/pages/splash_screen.dart';
 // import 'pages/main_screen.dart';
 // import 'pages/login_screen.dart';
@@ -54,7 +54,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) {
           Future.microtask(() => triggerListener.init(context));
-          return const SplashScreen();
+          //return const SplashScreen();
+          return const SettingScreen();
         },
         // '/main': (context) => const MainScreen(),
         // '/login': (context) => const LoginScreen(),
