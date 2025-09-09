@@ -33,12 +33,13 @@ class _HomeState extends State<Home> {
     super.initState();
     _year = _today.year;
     _month = _today.month;
-    _loadJsonData();        // 파일 리스트(기존)
-    _loadRecordBadges();    // 달력 라벨(신규)
+    _loadJsonData(); // 파일 리스트(기존)
+    _loadRecordBadges(); // 달력 라벨(신규)
   }
 
   Future<void> _loadJsonData() async {
-    final String response = await rootBundle.loadString('assets/data/data.json');
+    final String response =
+        await rootBundle.loadString('assets/data/data.json');
     final data = json.decode(response);
     setState(() => fileData = data);
   }
@@ -71,7 +72,8 @@ class _HomeState extends State<Home> {
         centerTitle: true,
         title: Text(
           isCalendarMode ? '달력' : '파일 목록',
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          style: const TextStyle(
+              color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         actions: [
           _topModeButton(
@@ -114,7 +116,8 @@ class _HomeState extends State<Home> {
                   TextButton(
                     onPressed: () {},
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Image.asset('assets/home/recordingList_.png', fit: BoxFit.contain),
+                    child: Image.asset('assets/home/recordingList_.png',
+                        fit: BoxFit.contain),
                   ),
                   TextButton(
                     onPressed: () {
@@ -128,7 +131,8 @@ class _HomeState extends State<Home> {
                       );
                     },
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Image.asset('assets/home/wordRecognition.png', fit: BoxFit.contain),
+                    child: Image.asset('assets/home/wordRecognition.png',
+                        fit: BoxFit.contain),
                   ),
                   TextButton(
                     onPressed: () {
@@ -142,7 +146,8 @@ class _HomeState extends State<Home> {
                       );
                     },
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Image.asset('assets/home/safeZone.png', fit: BoxFit.contain),
+                    child: Image.asset('assets/home/safeZone.png',
+                        fit: BoxFit.contain),
                   ),
                 ],
               ),
@@ -188,7 +193,8 @@ class _HomeState extends State<Home> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
                                   child: const Text(
                                     "이름 없는 파일",
                                     style: TextStyle(
@@ -221,8 +227,10 @@ class _HomeState extends State<Home> {
                         recent: fileData[i - 1]['recent'],
                         count: fileData[i - 1]['count'],
                         size: fileData[i - 1]['size'],
-                        badgeColor: Color(int.parse(fileData[i - 1]['color'].replaceFirst('#', '0xFF'))),
-                        textColor: Color(int.parse(fileData[i - 1]['textColor'].replaceFirst('#', '0xFF'))),
+                        badgeColor: Color(int.parse(fileData[i - 1]['color']
+                            .replaceFirst('#', '0xFF'))),
+                        textColor: Color(int.parse(fileData[i - 1]['textColor']
+                            .replaceFirst('#', '0xFF'))),
                       ),
                     )
           ],
@@ -250,7 +258,8 @@ class _HomeState extends State<Home> {
               );
             },
             child: Container(
-              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.red),
+              decoration: const BoxDecoration(
+                  shape: BoxShape.circle, color: Colors.red),
               padding: const EdgeInsets.all(16.0),
               child: const Icon(Icons.mic, color: Colors.white, size: 30.0),
             ),
@@ -284,20 +293,31 @@ class _HomeState extends State<Home> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(6)),
-                child: Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                    color: badgeColor, borderRadius: BorderRadius.circular(6)),
+                child: Text(title,
+                    style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16)),
               ),
               const SizedBox(height: 10),
-              Text("최근 추가일 : $recent", style: const TextStyle(color: Colors.black45, fontSize: 12)),
+              Text("최근 추가일 : $recent",
+                  style: const TextStyle(color: Colors.black45, fontSize: 12)),
             ],
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text("파일 개수 : ${count}개", style: const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
+              Text("파일 개수 : ${count}개",
+                  style:
+                      const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
               const SizedBox(height: 8),
-              Text("전체 용량 : $size", style: const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
+              Text("전체 용량 : $size",
+                  style:
+                      const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
             ],
           ),
         ],
@@ -309,7 +329,8 @@ class _HomeState extends State<Home> {
   Widget _buildCalendarPopup() {
     // 선택된 연/월 기준으로 달력 데이터 계산
     final int daysInMonth = DateTime(_year, _month + 1, 0).day; // 말일
-    final int firstWeekday = DateTime(_year, _month, 1).weekday; // Mon=1..Sun=7 (Dart 규칙)
+    final int firstWeekday =
+        DateTime(_year, _month, 1).weekday; // Mon=1..Sun=7 (Dart 규칙)
     // 헤더가 "일~토" 이므로 '일요일 시작' 기준: 선행 빈칸 = weekday % 7 (Sun:7 -> 0칸)
     final int leadingBlanks = firstWeekday % 7;
 
@@ -327,10 +348,13 @@ class _HomeState extends State<Home> {
     bool isTodayCell(int idx) {
       if (!isValidCell(idx)) return false;
       final int day = int.parse(calendarDays[idx]);
-      return _year == _today.year && _month == _today.month && day == _today.day;
+      return _year == _today.year &&
+          _month == _today.month &&
+          day == _today.day;
     }
 
-    final DateTime todayDateOnly = DateTime(_today.year, _today.month, _today.day);
+    final DateTime todayDateOnly =
+        DateTime(_today.year, _today.month, _today.day);
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -339,7 +363,8 @@ class _HomeState extends State<Home> {
         height: MediaQuery.of(context).size.height * 0.785,
         decoration: const BoxDecoration(
           color: Color.fromARGB(255, 255, 255, 255),
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(40), topRight: Radius.circular(40)),
+          borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(40), topRight: Radius.circular(40)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -356,13 +381,17 @@ class _HomeState extends State<Home> {
                     // 연도
                     DropdownButton<int>(
                       value: _year,
-                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: Color(0xFF577BE5)),
                       underline: const SizedBox(),
-                      items: List.generate(11, (i) => (_today.year - 5) + i).map((y) {
+                      items: List.generate(11, (i) => (_today.year - 5) + i)
+                          .map((y) {
                         return DropdownMenuItem<int>(
                           value: y,
                           child: Text('$y년',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF577BE5))),
                         );
                       }).toList(),
                       onChanged: (v) {
@@ -375,13 +404,16 @@ class _HomeState extends State<Home> {
                     // 월
                     DropdownButton<int>(
                       value: _month,
-                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: Color(0xFF577BE5)),
                       underline: const SizedBox(),
                       items: List.generate(12, (i) => i + 1).map((m) {
                         return DropdownMenuItem<int>(
                           value: m,
                           child: Text('$m월',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF577BE5))),
                         );
                       }).toList(),
                       onChanged: (v) {
@@ -395,7 +427,10 @@ class _HomeState extends State<Home> {
 
               const SizedBox(height: 20),
               Image.asset('assets/images/monday.png', fit: BoxFit.cover),
-              Container(width: double.infinity, height: 1.0, color: const Color(0xFFCACACA)),
+              Container(
+                  width: double.infinity,
+                  height: 1.0,
+                  color: const Color(0xFFCACACA)),
 
               // 주(행) 동적 생성: 5 또는 6
               for (int i = 0; i < rowCount; i++) ...[
@@ -414,12 +449,14 @@ class _HomeState extends State<Home> {
                       }
 
                       final bool isToday = valid && isTodayCell(dateIndex);
-                      final bool isFuture = valid && cellDate!.isAfter(todayDateOnly);
+                      final bool isFuture =
+                          valid && cellDate!.isAfter(todayDateOnly);
 
                       // 해당 날짜의 라벨들
                       final List<RecordBadge> items;
                       if (valid) {
-                        final k = _dayKey(_year, _month, int.parse(calendarDays[dateIndex]));
+                        final k = _dayKey(
+                            _year, _month, int.parse(calendarDays[dateIndex]));
                         items = _records[k] ?? const <RecordBadge>[];
                       } else {
                         items = const <RecordBadge>[];
@@ -431,7 +468,8 @@ class _HomeState extends State<Home> {
                           onTap: () {
                             if (!valid) return;
                             if (isFuture) return; // ✅ 오늘 이후는 터치 불가
-                            _showDayDialog(context, cellDate!, items); // ✅ 같은 아이템 그대로 전달
+                            _showDayDialog(
+                                context, cellDate!, items); // ✅ 같은 아이템 그대로 전달
                           },
                           child: Opacity(
                             opacity: isFuture ? 0.4 : 1.0, // ✅ 미래 날짜는 살짝 흐리게
@@ -447,15 +485,21 @@ class _HomeState extends State<Home> {
                                     height: 23.0,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: isToday ? const Color(0xFF577BE5) : Colors.transparent,
+                                      color: isToday
+                                          ? const Color(0xFF577BE5)
+                                          : Colors.transparent,
                                       borderRadius: BorderRadius.circular(4.0),
                                     ),
                                     child: Text(
                                       valid ? calendarDays[dateIndex] : '',
                                       style: TextStyle(
                                         fontSize: 12.0,
-                                        color: isToday ? Colors.white : Colors.black,
-                                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                                        color: isToday
+                                            ? Colors.white
+                                            : Colors.black,
+                                        fontWeight: isToday
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
                                       ),
                                     ),
                                   ),
@@ -466,7 +510,10 @@ class _HomeState extends State<Home> {
                                   if (items.length > 4)
                                     const Padding(
                                       padding: EdgeInsets.only(top: 2),
-                                      child: Text('…', style: TextStyle(color: Colors.black45, fontSize: 11)),
+                                      child: Text('…',
+                                          style: TextStyle(
+                                              color: Colors.black45,
+                                              fontSize: 11)),
                                     ),
                                 ],
                               ),
@@ -478,7 +525,10 @@ class _HomeState extends State<Home> {
                   ),
                 ),
                 if (i != rowCount - 1)
-                  Container(width: double.infinity, height: 1.0, color: const Color(0xFFCACACA)),
+                  Container(
+                      width: double.infinity,
+                      height: 1.0,
+                      color: const Color(0xFFCACACA)),
               ],
             ],
           ),
@@ -491,10 +541,12 @@ class _HomeState extends State<Home> {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: b.bg, borderRadius: BorderRadius.circular(6)),
+      decoration:
+          BoxDecoration(color: b.bg, borderRadius: BorderRadius.circular(6)),
       child: Text(
         b.title, // "1310  4분"
-        style: TextStyle(fontSize: 10.5, height: 1.2, color: b.fg, fontWeight: FontWeight.w600),
+        style: TextStyle(
+            fontSize: 7, height: 1.2, color: b.fg, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -520,16 +572,18 @@ class _HomeState extends State<Home> {
 
 /// =================== 다이얼로그 & 모델 ===================
 
-void _showDayDialog(BuildContext context, DateTime date, List<RecordBadge> items) {
+void _showDayDialog(
+    BuildContext context, DateTime date, List<RecordBadge> items) {
   showGeneralDialog(
     context: context,
     barrierLabel: 'day-detail',
-    barrierDismissible: true,       // 밖을 탭하면 닫힘
+    barrierDismissible: true, // 밖을 탭하면 닫힘
     barrierColor: Colors.black54,
     transitionDuration: const Duration(milliseconds: 180),
     pageBuilder: (_, __, ___) => const SizedBox.shrink(),
     transitionBuilder: (ctx, anim, __, ___) {
-      final scale = Tween<double>(begin: 0.95, end: 1.0).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut));
+      final scale = Tween<double>(begin: 0.95, end: 1.0)
+          .animate(CurvedAnimation(parent: anim, curve: Curves.easeOut));
       final opacity = Tween<double>(begin: 0, end: 1).animate(anim);
       return Opacity(
         opacity: opacity.value,
@@ -541,7 +595,8 @@ void _showDayDialog(BuildContext context, DateTime date, List<RecordBadge> items
               borderRadius: BorderRadius.circular(20),
               clipBehavior: Clip.antiAlias,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360, maxHeight: 520),
+                constraints:
+                    const BoxConstraints(maxWidth: 360, maxHeight: 520),
                 child: _DayDialogBody(date: date, items: items),
               ),
             ),
@@ -564,28 +619,35 @@ class _DayDialogBody extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         const SizedBox(height: 8),
-                  Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2))),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Text(titleDate, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
+        Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+                color: Colors.black12, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Text(titleDate,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
 
         // 내용
         if (items.isEmpty)
           const Expanded(
             child: Center(
-              child: Text('이 날의 녹음이 없습니다.', style: TextStyle(color: Colors.black54)),
+              child: Text('이 날의 녹음이 없습니다.',
+                  style: TextStyle(color: Colors.black54)),
             ),
           )
         else
@@ -603,10 +665,14 @@ class _DayDialogBody extends StatelessWidget {
                     width: 40,
                     height: 40,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(color: r.bg, borderRadius: BorderRadius.circular(10)),
-                    child: Text('$hh:$mm', style: TextStyle(color: r.fg, fontWeight: FontWeight.w700)),
+                    decoration: BoxDecoration(
+                        color: r.bg, borderRadius: BorderRadius.circular(10)),
+                    child: Text('$hh:$mm',
+                        style: TextStyle(
+                            color: r.fg, fontWeight: FontWeight.w700)),
                   ),
-                  title: Text('${r.minutes}분 녹음', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text('${r.minutes}분 녹음',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                   // subtitle: const Text('파일 1개', style: TextStyle(color: Colors.black45)), // 필요 없으면 숨김
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
@@ -622,11 +688,11 @@ class _DayDialogBody extends StatelessWidget {
 }
 
 class RecordBadge {
-  final String time;   // "HHmm"
-  final int minutes;   // 러닝타임(분)
+  final String time; // "HHmm"
+  final int minutes; // 러닝타임(분)
   final Color bg;
   final Color fg;
-  final String title;  // 칩 텍스트 (예: "1310  4분")
+  final String title; // 칩 텍스트 (예: "1310  4분")
 
   RecordBadge({
     required this.time,
@@ -641,12 +707,14 @@ class RecordBadge {
       final h = hex.replaceAll('#', '');
       return Color(int.parse('FF$h', radix: 16));
     }
+
     return RecordBadge(
       time: j['time'] as String,
       minutes: (j['minutes'] as num).toInt(),
       bg: parseHex(j['color'] as String),
       fg: parseHex(j['textColor'] as String),
-      title: (j['title'] as String?) ?? '${j['time']}  ${(j['minutes'] as num).toInt()}분',
+      title: (j['title'] as String?) ??
+          '${j['time']}  ${(j['minutes'] as num).toInt()}분',
     );
   }
 }
