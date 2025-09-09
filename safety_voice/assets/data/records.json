@@ -1,0 +1,9 @@
+{
+  "2025-09-08": [
+    { "time": "1310", "minutes": 4, "color": "#FFEAD6", "textColor": "#C86C00", "title": "1310  4분" },
+    { "time": "1526", "minutes": 2, "color": "#E6F6EA", "textColor": "#2F7D42", "title": "1526  2분" }
+  ],
+  "2025-08-25": [
+    { "time": "0259", "minutes": 3, "color": "#FFEAD6", "textColor": "#C86C00", "title": "0259  3분" }
+  ]
+}
