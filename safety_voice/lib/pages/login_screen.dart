@@ -249,41 +249,74 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
 
                 // 로그인 버튼
+                // Container(
+                //   width: double.infinity,
+                //   height: 50,
+                //   child: ElevatedButton(
+                //     onPressed: _isFormValid ? _login : null,
+                //     // onPressed: () => Navigator.pushReplacementNamed(context, '/calenda'),
+                //     style: ElevatedButton.styleFrom(
+                //       backgroundColor: _isFormValid
+                //           ? const Color(0xFF577BE5) // 파란색 (입력 완료시)
+                //           : Colors.grey[400], // 회색 (기본)
+                //       foregroundColor: Colors.white,
+                //       elevation: 0,
+                //       shape: RoundedRectangleBorder(
+                //         borderRadius: BorderRadius.circular(8),
+                //       ),
+                //       disabledBackgroundColor: Colors.grey[300],
+                //     ),
+                //     child: _isLoading
+                //         ? const SizedBox(
+                //             width: 20,
+                //             height: 20,
+                //             child: CircularProgressIndicator(
+                //               color: Colors.white,
+                //               strokeWidth: 2,
+                //             ),
+                //           )
+                //         : const Text(
+                //             '로그인',
+                //             style: TextStyle(
+                //               fontSize: 16,
+                //               fontWeight: FontWeight.w500,
+                //             ),
+                //           ),
+                //   ),
+                // ),
+
                 Container(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: _isFormValid ? _login : null,
-                    // onPressed: () => Navigator.pushReplacementNamed(context, '/calenda'),
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const Home(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isFormValid
-                          ? const Color(0xFF577BE5) // 파란색 (입력 완료시)
-                          : Colors.grey[400], // 회색 (기본)
+                      backgroundColor: const Color(0xFF577BE5), // 파란색
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      disabledBackgroundColor: Colors.grey[300],
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            '로그인',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                    child: const Text(
+                      '로그인',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
+
 
                 const SizedBox(height: 20),
 

@@ -1,0 +1,18 @@
+{
+  "2025-08-20": [
+    { "time": "1015", "minutes": 2, "color": "#E6F6EA", "textColor": "#2F7D42", "title": "1015  2분" }
+  ],
+  "2025-08-25": [
+    { "time": "0259", "minutes": 3, "color": "#FFEAD6", "textColor": "#C86C00", "title": "0259  3분" }
+  ],
+  "2025-09-03": [
+    { "time": "0930", "minutes": 5, "color": "#D6E9FF", "textColor": "#004A99", "title": "0930  5분" }
+  ],
+  "2025-09-05": [
+    { "time": "1740", "minutes": 1, "color": "#FCE8F2", "textColor": "#B00050", "title": "1740  1분" }
+  ],
+  "2025-09-08": [
+    { "time": "1310", "minutes": 4, "color": "#FFEAD6", "textColor": "#C86C00", "title": "1310  4분" },
+    { "time": "1526", "minutes": 2, "color": "#E6F6EA", "textColor": "#2F7D42", "title": "1526  2분" }
+  ]
+}

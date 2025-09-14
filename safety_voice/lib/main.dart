@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart'; // ✅ 추가
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
 // import 'package:safety_voice/pages/map_screen.dart';
 // import 'package:safety_voice/pages/setup_screen.dart';
 // import 'package:safety_voice/pages/signup_screen.dart';
-// import 'package:safety_voice/pages/word_setting.dart';
+import 'package:safety_voice/pages/word_setting.dart';
 import 'package:safety_voice/pages/splash_screen.dart';
 // import 'pages/main_screen.dart';
 // import 'pages/login_screen.dart';
@@ -17,6 +20,10 @@ import 'package:safety_voice/services/trigger_listener.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('ko_KR', null);
+  Intl.defaultLocale = 'ko_KR';
+
   await requestLocationPermission(); // ✅ 위치 권한 요청
   runApp(const MyApp());
 }
@@ -54,7 +61,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) {
           Future.microtask(() => triggerListener.init(context));
-          return const SplashScreen();
+          //return const SplashScreen();
+          return const SettingScreen();
         },
         // '/main': (context) => const MainScreen(),
         // '/login': (context) => const LoginScreen(),

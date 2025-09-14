@@ -1,17 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:intl/intl.dart';
+
 import 'package:safety_voice/pages/word_setting.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/nonamed.dart';
 import 'package:safety_voice/pages/caseFile.dart';
 import 'package:safety_voice/pages/stopRecord.dart';
 
-
-
 class Home extends StatefulWidget {
   const Home({super.key});
-
   @override
   State<Home> createState() => _HomeState();
 }
@@ -19,24 +18,45 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   bool isCalendarMode = true;
 
-  final List<String> calendarDays = List.generate(31, (index) => (index + 1).toString());
-  final int firstDayOfWeek = 1;
-  final DateTime now = DateTime.now();
+  // 연/월 드롭다운 상태 (일은 제거)
+  late int _year;
+  late int _month; // 1~12
+  final DateTime _today = DateTime.now();
 
   List<dynamic> fileData = [];
+
+  // 날짜별 녹음 라벨 데이터 (assets/data/records.json)
+  Map<String, List<RecordBadge>> _records = {};
 
   @override
   void initState() {
     super.initState();
-    _loadJsonData();
+    _year = _today.year;
+    _month = _today.month;
+    _loadJsonData(); // 파일 리스트(기존)
+    _loadRecordBadges(); // 달력 라벨(신규)
   }
 
   Future<void> _loadJsonData() async {
-    final String response = await rootBundle.loadString('assets/data/data.json');
+    final String response =
+        await rootBundle.loadString('assets/data/data.json');
     final data = json.decode(response);
-    setState(() {
-      fileData = data;
-    });
+    setState(() => fileData = data);
+  }
+
+  Future<void> _loadRecordBadges() async {
+    try {
+      final raw = await rootBundle.loadString('assets/data/records.json');
+      final Map<String, dynamic> m = json.decode(raw);
+      final map = <String, List<RecordBadge>>{};
+      m.forEach((k, v) {
+        final list = (v as List).map((e) => RecordBadge.fromJson(e)).toList();
+        map[k] = list;
+      });
+      setState(() => _records = map);
+    } catch (e) {
+      debugPrint('records.json load error: $e');
+    }
   }
 
   @override
@@ -52,7 +72,8 @@ class _HomeState extends State<Home> {
         centerTitle: true,
         title: Text(
           isCalendarMode ? '달력' : '파일 목록',
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          style: const TextStyle(
+              color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         actions: [
           _topModeButton(
@@ -70,7 +91,6 @@ class _HomeState extends State<Home> {
         ],
       ),
       body: isCalendarMode ? _buildCalendarPopup() : _buildListMode(),
-      
       bottomNavigationBar: SizedBox(
         height: 80,
         child: Material(
@@ -94,11 +114,10 @@ class _HomeState extends State<Home> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   TextButton(
-                    onPressed: () {
-                      
-                    },
+                    onPressed: () {},
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Image.asset('assets/home/recordingList_.png', fit: BoxFit.contain),
+                    child: Image.asset('assets/home/recordingList_.png',
+                        fit: BoxFit.contain),
                   ),
                   TextButton(
                     onPressed: () {
@@ -112,7 +131,8 @@ class _HomeState extends State<Home> {
                       );
                     },
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Image.asset('assets/home/wordRecognition.png', fit: BoxFit.contain),
+                    child: Image.asset('assets/home/wordRecognition.png',
+                        fit: BoxFit.contain),
                   ),
                   TextButton(
                     onPressed: () {
@@ -126,10 +146,10 @@ class _HomeState extends State<Home> {
                       );
                     },
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                    child: Image.asset('assets/home/safeZone.png', fit: BoxFit.contain),
+                    child: Image.asset('assets/home/safeZone.png',
+                        fit: BoxFit.contain),
                   ),
                 ],
-
               ),
             ),
           ),
@@ -146,72 +166,73 @@ class _HomeState extends State<Home> {
           children: [
             for (int i = 0; i < fileData.length + 1; i++)
               i == 0
-                ? GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageRouteBuilder(
-                          pageBuilder: (_, __, ___) => const Nonamed(),
-                          transitionDuration: Duration.zero,
-                          reverseTransitionDuration: Duration.zero,
+                  ? GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) => const Nonamed(),
+                            transitionDuration: Duration.zero,
+                            reverseTransitionDuration: Duration.zero,
+                          ),
+                        );
+                      },
+                      child: Container(
+                        height: 110,
+                        margin: const EdgeInsets.only(bottom: 16.0),
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 255, 255, 255),
+                          borderRadius: BorderRadius.circular(20.0),
                         ),
-                      );
-                    },
-                    child: Container(
-                      height: 110,
-                      margin: const EdgeInsets.only(bottom: 16.0),
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 255, 255, 255),
-                        borderRadius: BorderRadius.circular(20.0),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                child: const Text(
-                                  "이름 없는 파일",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                  child: const Text(
+                                    "이름 없는 파일",
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 10),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        PageRouteBuilder(
-                          pageBuilder: (_, __, ___) => const CaseFile(),
-                          transitionDuration: Duration.zero,
-                          reverseTransitionDuration: Duration.zero,
+                                const SizedBox(height: 10),
+                              ],
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                    child: _buildFileBox(
-                      title: fileData[i - 1]['title'],
-                      recent: fileData[i - 1]['recent'],
-                      count: fileData[i - 1]['count'],
-                      size: fileData[i - 1]['size'],
-                      badgeColor: Color(int.parse(fileData[i - 1]['color'].replaceFirst('#', '0xFF'))),
-                      textColor: Color(int.parse(fileData[i - 1]['textColor'].replaceFirst('#', '0xFF'))),
-                    ),
-                  )
-
-
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) => const CaseFile(),
+                            transitionDuration: Duration.zero,
+                            reverseTransitionDuration: Duration.zero,
+                          ),
+                        );
+                      },
+                      child: _buildFileBox(
+                        title: fileData[i - 1]['title'],
+                        recent: fileData[i - 1]['recent'],
+                        count: fileData[i - 1]['count'],
+                        size: fileData[i - 1]['size'],
+                        badgeColor: Color(int.parse(fileData[i - 1]['color']
+                            .replaceFirst('#', '0xFF'))),
+                        textColor: Color(int.parse(fileData[i - 1]['textColor']
+                            .replaceFirst('#', '0xFF'))),
+                      ),
+                    )
           ],
         ),
         Positioned(
@@ -219,44 +240,31 @@ class _HomeState extends State<Home> {
           right: 16.0,
           child: GestureDetector(
             onTap: () {},
-            child: Image.asset(
-              'assets/images/plus.png',
-              width: 60,
-              height: 60,
+            child: Image.asset('assets/images/plus.png', width: 60, height: 60),
+          ),
+        ),
+        Positioned(
+          bottom: 16.0,
+          left: 16.0,
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (_, __, ___) => const StopRecord(),
+                  transitionDuration: Duration.zero,
+                  reverseTransitionDuration: Duration.zero,
+                ),
+              );
+            },
+            child: Container(
+              decoration: const BoxDecoration(
+                  shape: BoxShape.circle, color: Colors.red),
+              padding: const EdgeInsets.all(16.0),
+              child: const Icon(Icons.mic, color: Colors.white, size: 30.0),
             ),
           ),
         ),
-
-        Positioned(
-            bottom: 16.0,
-            left: 16.0,
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (_, __, ___) => const StopRecord(), // 이 부분은 실제 위젯 이름에 맞게 수정
-                    transitionDuration: Duration.zero,
-                    reverseTransitionDuration: Duration.zero,
-                  ),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.red,
-                ),
-                padding: const EdgeInsets.all(16.0),
-                child: const Icon(
-                  Icons.mic,
-                  color: Colors.white,
-                  size: 30.0,
-                ),
-              ),
-            ),
-          ),
-
-          
       ],
     );
   }
@@ -285,23 +293,31 @@ class _HomeState extends State<Home> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: badgeColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 16)),
+                    color: badgeColor, borderRadius: BorderRadius.circular(6)),
+                child: Text(title,
+                    style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16)),
               ),
               const SizedBox(height: 10),
-              Text("최근 추가일 : $recent", style: const TextStyle(color: Colors.black45,fontSize: 12)),
+              Text("최근 추가일 : $recent",
+                  style: const TextStyle(color: Colors.black45, fontSize: 12)),
             ],
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text("파일 개수 : ${count}개", style: const TextStyle(color: Color(0xFF577BE5),fontSize: 12)),
+              Text("파일 개수 : ${count}개",
+                  style:
+                      const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
               const SizedBox(height: 8),
-              Text("전체 용량 : $size", style: const TextStyle(color: Color(0xFF577BE5),fontSize: 12)),
+              Text("전체 용량 : $size",
+                  style:
+                      const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
             ],
           ),
         ],
@@ -309,7 +325,37 @@ class _HomeState extends State<Home> {
     );
   }
 
+  /// =================== 달력 뷰 ===================
   Widget _buildCalendarPopup() {
+    // 선택된 연/월 기준으로 달력 데이터 계산
+    final int daysInMonth = DateTime(_year, _month + 1, 0).day; // 말일
+    final int firstWeekday =
+        DateTime(_year, _month, 1).weekday; // Mon=1..Sun=7 (Dart 규칙)
+    // 헤더가 "일~토" 이므로 '일요일 시작' 기준: 선행 빈칸 = weekday % 7 (Sun:7 -> 0칸)
+    final int leadingBlanks = firstWeekday % 7;
+
+    final List<String> calendarDays = [
+      ...List.filled(leadingBlanks, ''),
+      ...List.generate(daysInMonth, (i) => (i + 1).toString()),
+    ];
+
+    final int totalCells = leadingBlanks + daysInMonth;
+    final int rowCount = (totalCells / 7).ceil();
+
+    bool isValidCell(int idx) =>
+        idx >= 0 && idx < calendarDays.length && calendarDays[idx].isNotEmpty;
+
+    bool isTodayCell(int idx) {
+      if (!isValidCell(idx)) return false;
+      final int day = int.parse(calendarDays[idx]);
+      return _year == _today.year &&
+          _month == _today.month &&
+          day == _today.day;
+    }
+
+    final DateTime todayDateOnly =
+        DateTime(_today.year, _today.month, _today.day);
+
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
@@ -318,105 +364,158 @@ class _HomeState extends State<Home> {
         decoration: const BoxDecoration(
           color: Color.fromARGB(255, 255, 255, 255),
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(40),
-            topRight: Radius.circular(40),
-          ),
+              topLeft: Radius.circular(40), topRight: Radius.circular(40)),
         ),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
+
+              // 상단 드롭다운: 연/월만 (일 제거)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
+                    // 연도
                     DropdownButton<int>(
-                      value: now.year,
-                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
+                      value: _year,
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: Color(0xFF577BE5)),
                       underline: const SizedBox(),
-                      items: List.generate(10, (index) {
-                        int year = 2020 + index;
-                        return DropdownMenuItem(
-                          value: year,
-                          child: Text('$year년', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
+                      items: List.generate(11, (i) => (_today.year - 5) + i)
+                          .map((y) {
+                        return DropdownMenuItem<int>(
+                          value: y,
+                          child: Text('$y년',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF577BE5))),
                         );
-                      }),
-                      onChanged: (value) {},
+                      }).toList(),
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _year = v);
+                      },
                     ),
                     const SizedBox(width: 10),
+
+                    // 월
                     DropdownButton<int>(
-                      value: now.month,
-                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
+                      value: _month,
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: Color(0xFF577BE5)),
                       underline: const SizedBox(),
-                      items: List.generate(12, (index) {
-                        int month = index + 1;
-                        return DropdownMenuItem(
-                          value: month,
-                          child: Text('$month월', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
+                      items: List.generate(12, (i) => i + 1).map((m) {
+                        return DropdownMenuItem<int>(
+                          value: m,
+                          child: Text('$m월',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF577BE5))),
                         );
-                      }),
-                      onChanged: (value) {},
-                    ),
-                    const SizedBox(width: 10),
-                    DropdownButton<int>(
-                      value: now.day,
-                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF577BE5)),
-                      underline: const SizedBox(),
-                      items: List.generate(31, (index) {
-                        int day = index + 1;
-                        return DropdownMenuItem(
-                          value: day,
-                          child: Text('$day일', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF577BE5))),
-                        );
-                      }),
-                      onChanged: (value) {},
+                      }).toList(),
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _month = v);
+                      },
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 20),
-              Image.asset(
-                'assets/images/monday.png',
-                fit: BoxFit.cover,
-              ),
+              Image.asset('assets/images/monday.png', fit: BoxFit.cover),
               Container(
-                width: double.infinity,
-                height: 1.0,
-                color: const Color(0xFFCACACA),
-              ),
-              for (int i = 0; i < 5; i++) ...[
+                  width: double.infinity,
+                  height: 1.0,
+                  color: const Color(0xFFCACACA)),
+
+              // 주(행) 동적 생성: 5 또는 6
+              for (int i = 0; i < rowCount; i++) ...[
                 SizedBox(
                   height: 99.0,
                   child: Row(
                     children: List.generate(7, (j) {
-                      int dateIndex = i * 7 + j;
-                      bool isToday = dateIndex >= firstDayOfWeek - 1 &&
-                          dateIndex < calendarDays.length &&
-                          calendarDays[dateIndex] == now.day.toString();
+                      final int dateIndex = i * 7 + j;
+                      final bool valid = isValidCell(dateIndex);
+
+                      // 셀의 날짜(Date)
+                      DateTime? cellDate;
+                      if (valid) {
+                        final int d = int.parse(calendarDays[dateIndex]);
+                        cellDate = DateTime(_year, _month, d);
+                      }
+
+                      final bool isToday = valid && isTodayCell(dateIndex);
+                      final bool isFuture =
+                          valid && cellDate!.isAfter(todayDateOnly);
+
+                      // 해당 날짜의 라벨들
+                      final List<RecordBadge> items;
+                      if (valid) {
+                        final k = _dayKey(
+                            _year, _month, int.parse(calendarDays[dateIndex]));
+                        items = _records[k] ?? const <RecordBadge>[];
+                      } else {
+                        items = const <RecordBadge>[];
+                      }
 
                       return Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.only(left: 6.0),
-                          child: Align(
-                            alignment: Alignment.topLeft,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            if (!valid) return;
+                            if (isFuture) return; // ✅ 오늘 이후는 터치 불가
+                            _showDayDialog(
+                                context, cellDate!, items); // ✅ 같은 아이템 그대로 전달
+                          },
+                          child: Opacity(
+                            opacity: isFuture ? 0.4 : 1.0, // ✅ 미래 날짜는 살짝 흐리게
                             child: Container(
-                              margin: const EdgeInsets.only(top: 1.0),
-                              width: 23.0,
-                              height: 23.0,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: isToday ? Color(0xFF577BE5) : Colors.transparent,
-                                borderRadius: BorderRadius.circular(4.0),
-                              ),
-                              child: Text(
-                                dateIndex < calendarDays.length ? calendarDays[dateIndex] : '',
-                                style: TextStyle(
-                                  fontSize: 12.0,
-                                  color: isToday ? Colors.white : Colors.black,
-                                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                                ),
+                              margin: const EdgeInsets.only(left: 6.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 날짜 네모
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 1.0),
+                                    width: 23.0,
+                                    height: 23.0,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: isToday
+                                          ? const Color(0xFF577BE5)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(4.0),
+                                    ),
+                                    child: Text(
+                                      valid ? calendarDays[dateIndex] : '',
+                                      style: TextStyle(
+                                        fontSize: 12.0,
+                                        color: isToday
+                                            ? Colors.white
+                                            : Colors.black,
+                                        fontWeight: isToday
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+
+                                  // 날짜별 미니 뱃지들
+                                  for (final b in items.take(4)) _miniBadge(b),
+                                  if (items.length > 4)
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 2),
+                                      child: Text('…',
+                                          style: TextStyle(
+                                              color: Colors.black45,
+                                              fontSize: 11)),
+                                    ),
+                                ],
                               ),
                             ),
                           ),
@@ -425,16 +524,29 @@ class _HomeState extends State<Home> {
                     }),
                   ),
                 ),
-                if (i != 4)
+                if (i != rowCount - 1)
                   Container(
-                    width: double.infinity,
-                    height: 1.0,
-                    color: const Color(0xFFCACACA),
-                  ),
+                      width: double.infinity,
+                      height: 1.0,
+                      color: const Color(0xFFCACACA)),
               ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _miniBadge(RecordBadge b) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration:
+          BoxDecoration(color: b.bg, borderRadius: BorderRadius.circular(6)),
+      child: Text(
+        b.title, // "1310  4분"
+        style: TextStyle(
+            fontSize: 7, height: 1.2, color: b.fg, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -448,15 +560,164 @@ class _HomeState extends State<Home> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: selected ? Color(0xFF577BE5) : Colors.transparent,
+          color: selected ? const Color(0xFF577BE5) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         padding: const EdgeInsets.all(8),
-        child: Icon(
-          icon,
-          color: selected ? Colors.white : Colors.black,
-        ),
+        child: Icon(icon, color: selected ? Colors.white : Colors.black),
       ),
     );
   }
 }
+
+/// =================== 다이얼로그 & 모델 ===================
+
+void _showDayDialog(
+    BuildContext context, DateTime date, List<RecordBadge> items) {
+  showGeneralDialog(
+    context: context,
+    barrierLabel: 'day-detail',
+    barrierDismissible: true, // 밖을 탭하면 닫힘
+    barrierColor: Colors.black54,
+    transitionDuration: const Duration(milliseconds: 180),
+    pageBuilder: (_, __, ___) => const SizedBox.shrink(),
+    transitionBuilder: (ctx, anim, __, ___) {
+      final scale = Tween<double>(begin: 0.95, end: 1.0)
+          .animate(CurvedAnimation(parent: anim, curve: Curves.easeOut));
+      final opacity = Tween<double>(begin: 0, end: 1).animate(anim);
+      return Opacity(
+        opacity: opacity.value,
+        child: Transform.scale(
+          scale: scale.value,
+          child: Center(
+            child: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              clipBehavior: Clip.antiAlias,
+              child: ConstrainedBox(
+                constraints:
+                    const BoxConstraints(maxWidth: 360, maxHeight: 520),
+                child: _DayDialogBody(date: date, items: items),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _DayDialogBody extends StatelessWidget {
+  const _DayDialogBody({required this.date, required this.items});
+  final DateTime date;
+  final List<RecordBadge> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleDate = DateFormat('M월 d일 (E)', 'ko_KR').format(date);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 8),
+        Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+                color: Colors.black12, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Text(titleDate,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+
+        // 내용
+        if (items.isEmpty)
+          const Expanded(
+            child: Center(
+              child: Text('이 날의 녹음이 없습니다.',
+                  style: TextStyle(color: Colors.black54)),
+            ),
+          )
+        else
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, i) {
+                final r = items[i];
+                final hh = r.time.substring(0, 2);
+                final mm = r.time.substring(2, 4);
+                return ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                        color: r.bg, borderRadius: BorderRadius.circular(10)),
+                    child: Text('$hh:$mm',
+                        style: TextStyle(
+                            color: r.fg, fontWeight: FontWeight.w700)),
+                  ),
+                  title: Text('${r.minutes}분 녹음',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  // subtitle: const Text('파일 1개', style: TextStyle(color: Colors.black45)), // 필요 없으면 숨김
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    // TODO: 상세/재생 등 연결(원하면 여기에)
+                  },
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class RecordBadge {
+  final String time; // "HHmm"
+  final int minutes; // 러닝타임(분)
+  final Color bg;
+  final Color fg;
+  final String title; // 칩 텍스트 (예: "1310  4분")
+
+  RecordBadge({
+    required this.time,
+    required this.minutes,
+    required this.bg,
+    required this.fg,
+    required this.title,
+  });
+
+  factory RecordBadge.fromJson(Map<String, dynamic> j) {
+    Color parseHex(String hex) {
+      final h = hex.replaceAll('#', '');
+      return Color(int.parse('FF$h', radix: 16));
+    }
+
+    return RecordBadge(
+      time: j['time'] as String,
+      minutes: (j['minutes'] as num).toInt(),
+      bg: parseHex(j['color'] as String),
+      fg: parseHex(j['textColor'] as String),
+      title: (j['title'] as String?) ??
+          '${j['time']}  ${(j['minutes'] as num).toInt()}분',
+    );
+  }
+}
+
+String _dayKey(int y, int m, int d) =>
+    '${y.toString().padLeft(4, '0')}-${m.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
