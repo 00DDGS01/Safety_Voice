@@ -61,8 +61,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) {
           Future.microtask(() => triggerListener.init(context));
-          //return const SplashScreen();
-          return const SettingScreen();
+          return const SplashScreen();
+          //return const SettingScreen();
         },
         // '/main': (context) => const MainScreen(),
         // '/login': (context) => const LoginScreen(),
