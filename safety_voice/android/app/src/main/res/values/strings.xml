@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 이미 다른 문자열이 있다면 아래 줄만 추가 -->
+    <string name="kakao_map_js_key">55d330f56d1e556b6586d78c512f7adb</string>
+</resources>
