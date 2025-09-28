@@ -49,13 +49,11 @@ dependencies:
   google_maps_flutter: ^2.10.1
   location : ^6.0.2
 
-  kakao_map_plugin: ^0.3.3
-  kpostal: ^1.1.0
-  geolocator: ^12.0.0
+  
   flutter_inappwebview: ^6.1.5
   file_picker: ^10.3.3
   dio: ^5.7.0
-  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -100,4 +100,3 @@ class TriggerListener {
       print("⚠️ STT 이미 실행 중이거나 재시작 조건 아님");
     }
   }
-}
