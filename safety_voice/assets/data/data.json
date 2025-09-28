@@ -1,34 +1,12 @@
 [
   {
     "title": "사건 파일 1",
+    "description": "aa",
     "color": "#FDEDED",
     "textColor": "#EF4B4B",
     "recent": "2025-05-09",
     "count": 32,
     "size": "8GB"
-  },
-  {
-    "title": "사건 파일 2",
-    "color": "#EBF8ED",
-    "textColor": "#00A64F",
-    "recent": "2025-05-15",
-    "count": 23,
-    "size": "3GB"
-  },
-  {
-    "title": "사건 파일 3",
-    "color": "#E7F0FE",
-    "textColor": "#1A73E8",
-    "recent": "2025-05-15",
-    "count": 5,
-    "size": "2GB"
-  },
-  {
-    "title": "사건 파일 4",
-    "color": "#FFF4E0",
-    "textColor": "#F19E38",
-    "recent": "2025-05-15",
-    "count": 5,
-    "size": "2GB"
   }
 ]
+
