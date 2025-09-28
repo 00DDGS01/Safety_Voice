@@ -475,14 +475,22 @@ class _HomeState extends State<Home> {
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
+                          child: TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('취소'),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              foregroundColor: Colors.black87,
+                              overlayColor: Colors.black12,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('취소', style: TextStyle(fontSize: 16)),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: ElevatedButton(
+                          child: TextButton(
                             onPressed: () async {
                               final title = titleCtrl.text.trim();
                               final description = descCtrl.text.trim();
@@ -496,11 +504,7 @@ class _HomeState extends State<Home> {
                                 return;
                               }
 
-
-
-                              // 텍스트 컬러 = 선택색 + 검정 블렌드
                               final textColor = _mixWithBlack(selected, 0.6);
-
                               final now = DateTime.now();
                               final newItem = {
                                 "title": title,
@@ -512,18 +516,25 @@ class _HomeState extends State<Home> {
                                 "size": "0GB",
                               };
 
-                              // ✅ 메모리 반영 + 로컬 JSON 저장
                               setState(() => fileData.insert(0, newItem));
                               await _saveFileData();
 
                               if (mounted) Navigator.pop(ctx, true);
                             },
-
-                            child: const Text('저장'),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              foregroundColor: Colors.black87,
+                              overlayColor: Colors.black12,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('저장', style: TextStyle(fontSize: 16)),
                           ),
                         ),
                       ],
-                    ),
+                    )
+
                   ],
                 ),
               );
