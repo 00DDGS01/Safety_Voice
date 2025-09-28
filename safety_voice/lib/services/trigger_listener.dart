@@ -77,20 +77,27 @@ class TriggerListener {
   }
 
   void stop() {
-  if (_isListening) {
-    _isShutDown = true;
-    _speech.cancel(); // ⬅️ stop() 대신 cancel() 사용
-    _isListening = false;
-    print("🛑 STT 종료됨 (cancel)");
+    if (_isListening) {
+      _isShutDown = true;
+      _speech.cancel(); // ⬅️ stop() 대신 cancel() 사용
+      _isListening = false;
+      print("🛑 STT 종료됨 (cancel)");
+    }
   }
-}
+
+  // ✅ 새로 추가된 pause (stop과 동일 동작)
+  void pause() {
+    stop();
+    print("⏸️ STT 일시정지됨 (pause -> stop)");
+  }
 
   void restart(BuildContext context) {
-  if (_isShutDown && !_speech.isListening && !_isListening) {
-    print("🔄 STT 재시작됨");
-    _isShutDown = false;
-    _startListening(context);  // 새로운 context로
-  } else {
-    print("⚠️ STT 이미 실행 중이거나 재시작 조건 아님");
+    if (_isShutDown && !_speech.isListening && !_isListening) {
+      print("🔄 STT 재시작됨");
+      _isShutDown = false;
+      _startListening(context);  // 새로운 context로
+    } else {
+      print("⚠️ STT 이미 실행 중이거나 재시작 조건 아님");
+    }
   }
-}}
+}
