@@ -162,7 +162,19 @@ class _SetupScreenState extends State<SetupScreen> {
                             child: ElevatedButton(
                               onPressed: () {
                                 setState(() => isEditing = false);
+
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('설정값이 수정되었습니다.'),
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(seconds: 2),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                  ),
+                                );
                               },
+
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Color(0xFF6B73FF),
                                 shape: RoundedRectangleBorder(

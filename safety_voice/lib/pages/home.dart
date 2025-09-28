@@ -8,6 +8,9 @@ import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/nonamed.dart';
 import 'package:safety_voice/pages/caseFile.dart';
 import 'package:safety_voice/pages/stopRecord.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -28,6 +31,19 @@ class _HomeState extends State<Home> {
   // 날짜별 녹음 라벨 데이터 (assets/data/records.json)
   Map<String, List<RecordBadge>> _records = {};
 
+  final String _localFileName = 'data.json';
+
+  Future<File> _getLocalFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/$_localFileName');
+  }
+
+  Future<void> _saveFileData() async {
+    final f = await _getLocalFile();
+    await f.writeAsString(jsonEncode(fileData));
+  }
+
+
   @override
   void initState() {
     super.initState();
@@ -38,11 +54,27 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _loadJsonData() async {
-    final String response =
-        await rootBundle.loadString('assets/data/data.json');
-    final data = json.decode(response);
-    setState(() => fileData = data);
+    try {
+      final file = await _getLocalFile();
+
+      if (await file.exists()) {
+        // 이미 로컬 파일이 있으면 그걸 사용
+        final text = await file.readAsString();
+        final data = jsonDecode(text) as List<dynamic>;
+        setState(() => fileData = data);
+      } else {
+        // 없으면 assets에서 읽어와 복사 후 사용
+        final assetText = await rootBundle.loadString('assets/data/data.json');
+        final data = jsonDecode(assetText) as List<dynamic>;
+        setState(() => fileData = data);
+        await file.writeAsString(jsonEncode(fileData));
+      }
+    } catch (e) {
+      debugPrint('loadJson error: $e');
+      setState(() => fileData = []);
+    }
   }
+
 
   Future<void> _loadRecordBadges() async {
     try {
@@ -62,6 +94,11 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     const Color backgroundColor = Color(0xFFEFF3FF);
+
+    final titleCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -216,7 +253,15 @@ class _HomeState extends State<Home> {
                         Navigator.push(
                           context,
                           PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => const CaseFile(),
+                            pageBuilder: (_, __, ___) => CaseFile(
+                              data: fileData[i - 1],       // ✅ 선택된 사건 파일 데이터 전달
+                              onUpdate: (updated) async {  // ✅ 수정되면 callback으로 갱신
+                                setState(() {
+                                  fileData[i - 1] = updated;
+                                });
+                                await _saveFileData();
+                              },
+                            ),
                             transitionDuration: Duration.zero,
                             reverseTransitionDuration: Duration.zero,
                           ),
@@ -236,13 +281,20 @@ class _HomeState extends State<Home> {
           ],
         ),
         Positioned(
-          bottom: 16.0,
-          right: 16.0,
-          child: GestureDetector(
-            onTap: () {},
-            child: Image.asset('assets/images/plus.png', width: 60, height: 60),
+
+            bottom: 16.0,
+            right: 16.0,
+            child: GestureDetector(
+              onTap: () => _openAddCaseSheet(context),
+                  
+              child: Image.asset(
+                'assets/images/plus.png', // plus.png 이미지 사용
+                width: 60,
+                height: 60,
+              ),
+            ),
+            
           ),
-        ),
         Positioned(
           bottom: 16.0,
           left: 16.0,
@@ -268,6 +320,237 @@ class _HomeState extends State<Home> {
       ],
     );
   }
+
+  // ===== 유틸 =====
+  String _colorToHex(Color c) =>
+      '#${c.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+
+  // 선택된 색에 "검정 비율을 섞은" 더 진한 색 (텍스트용)
+  Color _mixWithBlack(Color base, [double t = 0.6]) {
+    // t=0.6이면 base:40%, black:60% 블렌딩
+    final r = (base.red   * (1 - t)).round();
+    final g = (base.green * (1 - t)).round();
+    final b = (base.blue  * (1 - t)).round();
+    return Color.fromARGB(255, r, g, b);
+  }
+
+  // 제목 중복 검사 (_cases는 너의 리스트)
+  bool _isTitleDuplicate(String title) =>
+    fileData.any((e) => (e['title'] as String).trim() == title.trim());
+
+
+  // ===== 모달 오픈 =====
+  Future<void> _openAddCaseSheet(BuildContext context) async {
+    final titleCtrl = TextEditingController();
+    final descCtrl  = TextEditingController();
+
+    // 예시 팔레트(원하면 더 추가)
+    final preset = <Color>[
+      const Color(0xFFFDEDED), // 빨강 라이트
+      const Color(0xFFEBF8ED), // 초록 라이트
+      const Color(0xFFE7F0FE), // 파랑 라이트
+      const Color(0xFFFFF4E0), // 주황 라이트
+      const Color(0xFFEFEFEF), // 회색 라이트
+    ];
+
+    Color selected = preset[2]; // 기본 파랑 라이트
+
+    void _showSheetSnack(BuildContext ctx, String message) {
+      // 현재 스낵바 있으면 닫기
+      ScaffoldMessenger.of(ctx).hideCurrentSnackBar();
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 100,
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final bottom = MediaQuery.of(ctx).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: bottom + 16),
+          child: StatefulBuilder(
+            builder: (ctx, setSheet) {
+              // 한 줄 UI를 만들기 위한 공용 위젯
+              Widget rowField(String label, Widget trailing) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 72,
+                      child: Text(label,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14)),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: trailing),
+                  ],
+                ),
+              );
+
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 6),
+                    Container(width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.black12, borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(height: 12),
+                    const Text("사건 파일 추가",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+
+                    // 제목(한 줄)
+                    rowField(
+                      '제목',
+                      TextField(
+                        controller: titleCtrl,
+                        decoration: const InputDecoration(
+                          hintText: '제목 입력',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+
+                    // 설명(한 줄 → 탭 시 여러 줄도 가능하도록)
+                    rowField(
+                      '설명',
+                      TextField(
+                        controller: descCtrl,
+                        minLines: 1,
+                        maxLines: 5,
+                        keyboardType: TextInputType.multiline,
+                        decoration: const InputDecoration(
+                          hintText: '간단한 설명',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                          alignLabelWithHint: true,
+                        ),
+                      ),
+                    ),
+
+                    // 색상(한 줄, 팔레트 선택)
+                    rowField(
+                      '색상',
+                      Wrap(
+                        spacing: 10,
+                        children: [
+                          for (final c in preset)
+                            GestureDetector(
+                              onTap: () => setSheet(() => selected = c),
+                              child: Container(
+                                width: 28, height: 28,
+                                decoration: BoxDecoration(
+                                  color: c,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: c == selected ? Colors.black : Colors.black26,
+                                    width: c == selected ? 2 : 1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              foregroundColor: Colors.black87,
+                              overlayColor: Colors.black12,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('취소', style: TextStyle(fontSize: 16)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () async {
+                              final title = titleCtrl.text.trim();
+                              final description = descCtrl.text.trim();
+
+                              if (title.isEmpty) {
+                                _showSheetSnack(ctx, '제목을 입력하세요');
+                                return;
+                              }
+                              if (_isTitleDuplicate(title)) {
+                                _showSheetSnack(ctx, '이미 존재하는 파일 이름입니다');
+                                return;
+                              }
+
+                              final textColor = _mixWithBlack(selected, 0.6);
+                              final now = DateTime.now();
+                              final newItem = {
+                                "title": title,
+                                "description": description,
+                                "color": _colorToHex(selected),
+                                "textColor": _colorToHex(textColor),
+                                "recent": DateFormat('yyyy-MM-dd').format(now),
+                                "count": 0,
+                                "size": "0GB",
+                              };
+
+                              setState(() => fileData.insert(0, newItem));
+                              await _saveFileData();
+
+                              if (mounted) Navigator.pop(ctx, true);
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              foregroundColor: Colors.black87,
+                              overlayColor: Colors.black12,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('저장', style: TextStyle(fontSize: 16)),
+                          ),
+                        ),
+                      ],
+                    )
+
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('사건 파일을 추가했습니다.')),
+      );
+    }
+  }
+
 
   Widget _buildFileBox({
     required String title,
