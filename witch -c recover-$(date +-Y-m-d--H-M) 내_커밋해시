@@ -1,0 +1,23 @@
+[33m979fccc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdesign/mainpage[m[33m, [m[1;31morigin/design/mainpage[m[33m)[m HEAD@{Mon Sep 29 07:51:28 2025}: checkout: moving from 57e5bbf88898f1fda050f2f5690adf61d1c8a2c6 to design/mainpage
+[33m57e5bbf[m HEAD@{Mon Sep 29 07:50:33 2025}: commit: feat: 반응형 오버 수정, 설정 토스트메시지 추가
+[33maecddc1[m HEAD@{Mon Sep 29 06:39:14 2025}: commit: feat: 사건 파일 생성 모달 업뎃
+[33m80c7d11[m HEAD@{Mon Sep 29 05:31:35 2025}: commit: feat: delete wrong fastapi
+[33m979fccc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdesign/mainpage[m[33m, [m[1;31morigin/design/mainpage[m[33m)[m HEAD@{Mon Sep 29 05:30:43 2025}: checkout: moving from fb61d770a08bbf07a33b66a107ec2dbb5d079bd2 to 979fccc9fd7e51659f5563df51430115fa101b29
+[33mfb61d77[m HEAD@{Mon Sep 29 05:21:30 2025}: checkout: moving from design/mainpage to fb61d770a08bbf07a33b66a107ec2dbb5d079bd2
+[33m979fccc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdesign/mainpage[m[33m, [m[1;31morigin/design/mainpage[m[33m)[m HEAD@{Mon Sep 29 05:20:08 2025}: commit: feat: 구글지도로 변경
+[33m858159a[m HEAD@{Mon Sep 29 04:52:54 2025}: commit (merge): Merge branch 'temp-branch' into design/mainpage
+[33mfc4daa5[m HEAD@{Mon Sep 29 04:46:34 2025}: checkout: moving from temp-branch to design/mainpage
+[33m3ad3030[m[33m ([m[1;32mtemp-branch[m[33m)[m HEAD@{Mon Sep 29 04:46:27 2025}: checkout: moving from 3ad30300d1287920897623200165873a12056744 to temp-branch
+[33m3ad3030[m[33m ([m[1;32mtemp-branch[m[33m)[m HEAD@{Mon Sep 29 04:43:43 2025}: commit: feat: 학습 시작 버튼 시 녹음 파일 저장
+[33m4e0c460[m HEAD@{Mon Sep 29 04:28:57 2025}: checkout: moving from design/mainpage to 4e0c460358faa5fc95427e54570cf5569c6ac73d
+[33mfc4daa5[m HEAD@{Fri Sep 26 21:49:17 2025}: commit: feat: 학습 시작 버튼 시 녹음 파일 저장
+[33me448a9c[m HEAD@{Fri Sep 26 07:13:44 2025}: pull origin design/mainpage: Fast-forward
+[33mef66ee0[m HEAD@{Fri Sep 26 07:13:43 2025}: checkout: moving from ef66ee0cdd59f464ae5abe5bb1a2f944e173222a to design/mainpage
+[33mef66ee0[m HEAD@{Wed Sep 10 01:41:09 2025}: checkout: moving from 33f9a658ff6918b302bb335e16a5a90dc7337992 to ef66ee0cdd59f464ae5abe5bb1a2f944e173222a
+[33m33f9a65[m HEAD@{Wed Sep 10 01:41:04 2025}: checkout: moving from ef66ee0cdd59f464ae5abe5bb1a2f944e173222a to 33f9a658ff6918b302bb335e16a5a90dc7337992
+[33mef66ee0[m HEAD@{Wed Sep 10 01:40:48 2025}: checkout: moving from design/mainpage to ef66ee0cdd59f464ae5abe5bb1a2f944e173222a
+[33mef66ee0[m HEAD@{Wed Sep 10 01:40:19 2025}: reset: moving to HEAD
+[33mef66ee0[m HEAD@{Wed Sep 10 01:39:50 2025}: checkout: moving from design/mainpage to design/mainpage
+[33mef66ee0[m HEAD@{Tue Sep 9 20:23:36 2025}: pull --tags origin design/mainpage: Fast-forward
+[33maf013b0[m HEAD@{Tue Sep 9 13:40:02 2025}: commit: UI/UX: 설정값 화면 비상 연락 단어 및 학습하기 파트 추가 구현
+[33m047683f[m HEAD@{Tue Sep 9 13:30:59 2025}: clone: from https://github.com/00DDGS01/Safety_Voice.git

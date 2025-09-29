@@ -160,20 +160,55 @@ class _SetupScreenState extends State<SetupScreen> {
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed: () {
-                                setState(() => isEditing = false);
-
+                              onPressed: () async {
                                 if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('설정값이 수정되었습니다.'),
-                                    behavior: SnackBarBehavior.floating,
-                                    duration: const Duration(seconds: 2),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+
+                                // 먼저 다이얼로그 띄우기
+                                final confirmed = await showDialog<bool>(
+                                  
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    content: const Text('정말로 설정값을 수정하시겠습니까?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        style: ElevatedButton.styleFrom(
+                                          foregroundColor: const Color.fromARGB(255, 65, 65, 65),
+                                        ),
+                                        child: const Text('취소'),
+                                        
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        style: ElevatedButton.styleFrom(
+                                          foregroundColor: const Color.fromARGB(255, 65, 65, 65),
+                                        ),
+                                        child: const Text('수정'),
+                                      ),
+                                    ],
                                   ),
                                 );
+
+                                // 사용자가 확인 눌렀을 때만 실행
+                                if (confirmed == true) {
+                                  setState(() => isEditing = false);
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('설정값이 수정되었습니다.'),
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: const Duration(seconds: 2),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    ),
+                                  );
+                                }
                               },
+
 
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Color(0xFF6B73FF),
