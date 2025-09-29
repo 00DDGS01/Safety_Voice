@@ -10,6 +10,23 @@ import 'package:safety_voice/pages/caseFile.dart';
 import 'package:safety_voice/pages/stopRecord.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+
+// ===== 오디오 확장자 판정 =====
+bool _isAudio(String path) {
+  final ext = p.extension(path).toLowerCase();
+  return ['.mp4', '.m4a', '.aac', '.wav', '.mp3', '.ogg'].contains(ext);
+}
+
+// ===== 바이트 → 문자열 포맷 =====
+String _formatBytes(int bytes) {
+  const k = 1024.0;
+  if (bytes >= k * k * k * k) return '${(bytes / (k * k * k * k)).toStringAsFixed(2)}TB';
+  if (bytes >= k * k * k)     return '${(bytes / (k * k * k)).toStringAsFixed(2)}GB';
+  if (bytes >= k * k)         return '${(bytes / (k * k)).toStringAsFixed(1)}MB';
+  if (bytes >= k)             return '${(bytes / k).toStringAsFixed(0)}KB';
+  return '${bytes}B';
+}
 
 
 class Home extends StatefulWidget {
@@ -33,6 +50,70 @@ class _HomeState extends State<Home> {
 
   final String _localFileName = 'data.json';
 
+  // 사건 제목으로 폴더 경로
+  Future<Directory> _caseDir(String title) async {
+    final dir = await getApplicationDocumentsDirectory();
+    return Directory(p.join(dir.path, title));
+  }
+
+  // 폴더 스캔 (오디오 파일 개수/총용량/최근수정일 yyyy-MM-dd)
+  Future<({int count, int bytes, String? recentYMD})> _scanCaseFolder(String title) async {
+    final dir = await _caseDir(title);
+    if (!await dir.exists()) return (count: 0, bytes: 0, recentYMD: null);
+
+    int count = 0;
+    int totalBytes = 0;
+    DateTime? latest;
+
+    await for (final ent in dir.list(followLinks: false)) {
+      if (ent is File && _isAudio(ent.path)) {
+        count++;
+        totalBytes += await ent.length();
+        final m = (await ent.stat()).modified;
+        if (latest == null || m.isAfter(latest!)) latest = m;
+      }
+    }
+
+    final recentYMD = latest == null ? null : DateFormat('yyyy-MM-dd').format(latest!);
+    return (count: count, bytes: totalBytes, recentYMD: recentYMD);
+  }
+
+  // 홈 목록 전체 동기화 (실제 폴더 기준으로 fileData 덮어쓰기)
+  Future<void> _reconcileAllCases() async {
+    try {
+      // fileData의 각 아이템: {"title","count","size","recent",...}
+      final list = List<Map<String, dynamic>>.from(fileData.map((e) => Map<String, dynamic>.from(e)));
+      bool changed = false;
+
+      for (var i = 0; i < list.length; i++) {
+        final item  = list[i];
+        final title = (item['title'] ?? '').toString();
+        if (title.isEmpty) continue;
+
+        final scan = await _scanCaseFolder(title);
+        final newCount  = scan.count;
+        final newSize   = _formatBytes(scan.bytes);
+        final newRecent = scan.recentYMD ?? (item['recent'] ?? '');
+
+        if (item['count'] != newCount || item['size'] != newSize || item['recent'] != newRecent) {
+          item['count']  = newCount;
+          item['size']   = newSize;
+          item['recent'] = newRecent;
+          list[i] = item;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        setState(() => fileData = list);
+        await _saveFileData(); // 로컬 data.json 업데이트
+      }
+    } catch (e) {
+      debugPrint('reconcileAllCases error: $e');
+    }
+  }
+
+
   Future<File> _getLocalFile() async {
     final dir = await getApplicationDocumentsDirectory();
     return File('${dir.path}/$_localFileName');
@@ -49,9 +130,12 @@ class _HomeState extends State<Home> {
     super.initState();
     _year = _today.year;
     _month = _today.month;
-    _loadJsonData(); // 파일 리스트(기존)
-    _loadRecordBadges(); // 달력 라벨(신규)
+    _loadJsonData().then((_) {
+      _reconcileAllCases();
+    });
+    _loadRecordBadges();
   }
+
 
   Future<void> _loadJsonData() async {
     try {
@@ -212,7 +296,8 @@ class _HomeState extends State<Home> {
                             transitionDuration: Duration.zero,
                             reverseTransitionDuration: Duration.zero,
                           ),
-                        );
+                        ).then((_) => _reconcileAllCases());
+
                       },
                       child: Container(
                         height: 110,
@@ -254,8 +339,8 @@ class _HomeState extends State<Home> {
                           context,
                           PageRouteBuilder(
                             pageBuilder: (_, __, ___) => CaseFile(
-                              data: fileData[i - 1],       // ✅ 선택된 사건 파일 데이터 전달
-                              onUpdate: (updated) async {  // ✅ 수정되면 callback으로 갱신
+                              data: fileData[i - 1],
+                              onUpdate: (updated) async {
                                 setState(() {
                                   fileData[i - 1] = updated;
                                 });
@@ -265,7 +350,8 @@ class _HomeState extends State<Home> {
                             transitionDuration: Duration.zero,
                             reverseTransitionDuration: Duration.zero,
                           ),
-                        );
+                        ).then((_) => _reconcileAllCases()); // ← 밑줄 붙인 메서드로!
+
                       },
                       child: _buildFileBox(
                         title: fileData[i - 1]['title'],
