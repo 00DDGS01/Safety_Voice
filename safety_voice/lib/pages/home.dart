@@ -288,16 +288,14 @@ class _HomeState extends State<Home> {
             for (int i = 0; i < fileData.length + 1; i++)
               i == 0
                   ? GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        final result = await Navigator.push(
                           context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => const Nonamed(),
-                            transitionDuration: Duration.zero,
-                            reverseTransitionDuration: Duration.zero,
-                          ),
-                        ).then((_) => _reconcileAllCases());
+                          MaterialPageRoute(builder: (_) => const Nonamed()),
+                        );
 
+                        await _reconcileAllCases(); // 또는 await _loadJsonData();
+                        setState(() {});   
                       },
                       child: Container(
                         height: 110,

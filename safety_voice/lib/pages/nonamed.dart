@@ -70,6 +70,8 @@ class _NonamedState extends State<Nonamed> {
   String? _currentPlayingFile;
   List<Map<String, dynamic>> audioFiles = [];
 
+  bool _changed = false;
+
   @override
   void initState() {
     super.initState();
@@ -188,7 +190,9 @@ class _NonamedState extends State<Nonamed> {
           automaticallyImplyLeading: false,
           leading: IconButton(
             icon: Image.asset('assets/images/back.png', height: 24),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(context, true); // ← 홈으로 true 전달
+            },
           ),
           title: Text(
             "이름 없는 파일",
