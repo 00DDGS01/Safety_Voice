@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:convert'; // data.json 읽기/쓰기
+import 'package:safety_voice/pages/case_file_select_page.dart'; // 이동 페이지
+import 'package:safety_voice/services/gpt_service.dart';         // GPT 요약
+import 'package:safety_voice/services/whisper_service.dart';     // Whisper STT
+import 'package:intl/intl.dart';
 
 class CaseFile extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -21,6 +30,10 @@ class CaseFile extends StatefulWidget {
 class _CaseFileState extends State<CaseFile> {
   bool _isExpanded = false;
 
+  final _player = AudioPlayer();
+  List<Map<String, dynamic>> _caseFiles = [];
+  String? _playing;
+
   late String title;
   late String description;
   late Color badgeColor; // 배경색
@@ -33,6 +46,7 @@ class _CaseFileState extends State<CaseFile> {
     description = (widget.data['description'] ?? '') as String;
     badgeColor  = _hexToColor(widget.data['color'] ?? '#E7F0FE');
     textColor   = _hexToColor(widget.data['textColor'] ?? '#1A73E8');
+    _loadCaseFiles();
   }
 
   // ===== Helpers =====
@@ -271,6 +285,104 @@ class _CaseFileState extends State<CaseFile> {
     );
   }
 
+  
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  Future<Directory> _caseDir() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return Directory(p.join(dir.path, title));
+  }
+
+  Future<void> _loadCaseFiles() async {
+    try {
+      final dir = await _caseDir();
+      final list = <Map<String, dynamic>>[];
+      if (await dir.exists()) {
+        await for (final ent in dir.list(recursive: false, followLinks: false)) {
+          if (ent is File && _isAudio(ent.path)) {
+            final bytes = await ent.length();
+            list.add({
+              'name': p.basename(ent.path),
+              'path': ent.path,
+              'bytes': bytes,
+            });
+          }
+        }
+        list.sort((a,b) => a['name'].compareTo(b['name']));
+      }
+      if (mounted) setState(() => _caseFiles = list);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('파일 목록을 불러오지 못했습니다: $e')),
+        );
+      }
+    }
+  }
+
+  bool _isAudio(String path) {
+    final ext = p.extension(path).toLowerCase();
+    return ['.mp4','.m4a','.aac','.wav','.mp3','.ogg'].contains(ext);
+  }
+
+  String _fmtSize(int bytes) {
+    const k = 1024.0;
+    if (bytes >= k*k*k) return '${(bytes/(k*k*k)).toStringAsFixed(2)}GB';
+    if (bytes >= k*k)   return '${(bytes/(k*k)).toStringAsFixed(1)}MB';
+    if (bytes >= k)     return '${(bytes/k).toStringAsFixed(0)}KB';
+    return '${bytes}B';
+  }
+
+  Future<File> _localDataJsonFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File(p.join(dir.path, 'data.json'));
+  }
+
+  Future<List<Map<String, dynamic>>> _readDataJson() async {
+    final f = await _localDataJsonFile();
+    if (!await f.exists()) return [];
+    final raw = await f.readAsString();
+    return (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<void> _writeDataJson(List<Map<String, dynamic>> items) async {
+    final f = await _localDataJsonFile();
+    final tmp = File('${f.path}.tmp');
+    await tmp.writeAsString(jsonEncode(items), flush: true);
+    if (await f.exists()) await f.delete();
+    await tmp.rename(f.path);
+  }
+
+  int _parseSizeToBytes(String s) {
+    final m = RegExp(r'^\s*([\d.]+)\s*(B|KB|MB|GB|TB)\s*$', caseSensitive: false)
+        .firstMatch((s.isEmpty ? '0B' : s).trim());
+    if (m == null) return 0;
+    final numVal = double.tryParse(m.group(1)!) ?? 0.0;
+    final unit = (m.group(2) ?? 'B').toUpperCase();
+    const k = 1024.0;
+    switch (unit) {
+      case 'TB': return (numVal * k * k * k * k).round();
+      case 'GB': return (numVal * k * k * k).round();
+      case 'MB': return (numVal * k * k).round();
+      case 'KB': return (numVal * k).round();
+      default:   return numVal.round();
+    }
+  }
+
+  String _formatBytes(int bytes) {
+    const k = 1024.0;
+    if (bytes >= k*k*k*k) return '${(bytes/(k*k*k*k)).toStringAsFixed(2)}TB';
+    if (bytes >= k*k*k)   return '${(bytes/(k*k*k)).toStringAsFixed(2)}GB';
+    if (bytes >= k*k)     return '${(bytes/(k*k)).toStringAsFixed(1)}MB';
+    if (bytes >= k)       return '${(bytes/k).toStringAsFixed(0)}KB';
+    return '${bytes}B';
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -336,6 +448,187 @@ class _CaseFileState extends State<CaseFile> {
               ),
             ),
           const Divider(color: Color(0xFFCACACA), thickness: 1.0),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadCaseFiles,
+              child: _caseFiles.isEmpty
+                  ? const Center(child: Text('이 사건의 녹음이 없습니다.'))
+                  : ListView.separated(
+                      itemCount: _caseFiles.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        final f = _caseFiles[i];
+                        return ListTile(
+                          leading: Icon(
+                            _playing == f['path'] ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                            color: _playing == f['path'] ? Colors.red : const Color(0xFF577BE5),
+                          ),
+                          title: Text(f['name'], maxLines: 1, overflow: TextOverflow.ellipsis),
+                          subtitle: Text('용량: ${_fmtSize(f["bytes"])}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // 이동
+                              IconButton(
+                                tooltip: '이동',
+                                icon: const Icon(Icons.drive_file_move_outline),
+                                onPressed: () async {
+                                  final result = await Navigator.push<Map<String, String>>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CaseFileSelectPage(
+                                        sourceFile: File(f['path']),
+                                        excludeTitles: [title, '이름 없는 파일'], // ✅ 현재 사건 + Nonamed 제외
+                                      ),
+                                    ),
+                                  );
+
+                                  if (result != null) {
+                                    final destTitle = result['title']!;
+                                    final destPath  = result['path']!;
+                                    final bytes     = (f['bytes'] as int?) ?? int.tryParse(result['bytes'] ?? '0') ?? 0;
+
+                                    // 1) 화면에서 제거 (파일은 이미 이동 완료됨)
+                                    setState(() => _caseFiles.removeAt(i));
+                                    if (_playing == f['path']) _playing = null;
+
+                                    // 2) data.json 반영
+                                    final list = await _readDataJson();
+                                    // source(현재 사건) 감소
+                                    final sIdx = list.indexWhere((e) => (e['title'] ?? '') == title);
+                                    if (sIdx >= 0) {
+                                      final item = Map<String, dynamic>.from(list[sIdx]);
+                                      final oldCount = (item['count'] as num? ?? 0).toInt();
+                                      final oldBytes = _parseSizeToBytes(item['size'] as String? ?? '0B');
+                                      final newBytes = (oldBytes - bytes).clamp(0, 1<<62);
+                                      item['count'] = (oldCount > 0) ? oldCount - 1 : 0;
+                                      item['size']  = _formatBytes(newBytes);
+                                      // recent는 유지(원하면 재계산 로직 추가)
+                                      list[sIdx] = item;
+                                    }
+                                    // dest(대상 사건) 증가
+                                    final dIdx = list.indexWhere((e) => (e['title'] ?? '') == destTitle);
+                                    if (dIdx >= 0) {
+                                      final item = Map<String, dynamic>.from(list[dIdx]);
+                                      final oldCount = (item['count'] as num? ?? 0).toInt();
+                                      final oldBytes = _parseSizeToBytes(item['size'] as String? ?? '0B');
+                                      final newBytes = oldBytes + bytes;
+                                      item['count']  = oldCount + 1;
+                                      item['size']   = _formatBytes(newBytes);
+                                      item['recent'] = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                                      list[dIdx] = item;
+                                    }
+                                    await _writeDataJson(list);
+
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('‘$destTitle’로 이동 완료: ${p.basename(destPath)}')),
+                                    );
+                                  }
+                                },
+                              ),
+
+                              // GPT
+                              IconButton(
+                                tooltip: 'GPT 요약',
+                                icon: const Icon(Icons.smart_toy_outlined),
+                                onPressed: () async {
+                                  // Nonamed과 동일한 요약 로직(Whisper → GPT)
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (_) => AlertDialog(
+                                      backgroundColor: const Color.fromARGB(255, 240, 244, 255),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      title: const Text('요약 중...', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      content: const SizedBox(height: 50, child: Center(child: CircularProgressIndicator())),
+                                    ),
+                                  );
+                                  try {
+                                    final transcript = await transcribeWithWhisper(File(f['path']));
+                                    final summary = await summarizeWithGPT(transcript);
+                                    if (mounted) Navigator.pop(context);
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => AlertDialog(
+                                        backgroundColor: const Color.fromARGB(255, 240, 244, 255),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        title: const Text('요약 결과', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        content: Text(summary),
+                                        actions: [ TextButton(onPressed: () => Navigator.pop(context), child: const Text('확인')) ],
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => AlertDialog(
+                                          backgroundColor: const Color.fromARGB(218, 255, 240, 240),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          title: const Text('오류 발생', style: TextStyle(fontWeight: FontWeight.bold)),
+                                          content: Text(e.toString()),
+                                          actions: [ TextButton(onPressed: () => Navigator.pop(context), child: const Text('확인')) ],
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+
+                              // 삭제
+                              IconButton(
+                                tooltip: '삭제',
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () async {
+                                  try {
+                                    final bytes = (f['bytes'] as int?) ?? await File(f['path']).length();
+                                    await File(f['path']).delete();
+                                    setState(() => _caseFiles.removeAt(i));
+                                    if (_playing == f['path']) _playing = null;
+
+                                    // data.json 감소 반영
+                                    final list = await _readDataJson();
+                                    final idx = list.indexWhere((e) => (e['title'] ?? '') == title);
+                                    if (idx >= 0) {
+                                      final item = Map<String, dynamic>.from(list[idx]);
+                                      final oldCount = (item['count'] as num? ?? 0).toInt();
+                                      final oldBytes = _parseSizeToBytes(item['size'] as String? ?? '0B');
+                                      final newBytes = (oldBytes - bytes).clamp(0, 1<<62);
+                                      item['count'] = (oldCount > 0) ? oldCount - 1 : 0;
+                                      item['size']  = _formatBytes(newBytes);
+                                      list[idx] = item;
+                                      await _writeDataJson(list);
+                                    }
+
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('삭제 완료')),
+                                    );
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('삭제 실패: $e')),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+
+                          onTap: () async {
+                            if (_playing == f['path']) {
+                              await _player.stop();
+                              setState(() => _playing = null);
+                            } else {
+                              await _player.play(DeviceFileSource(f['path']));
+                              setState(() => _playing = f['path']);
+                            }
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ),
 
         ],
       ),
