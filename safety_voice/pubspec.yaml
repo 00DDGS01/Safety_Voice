@@ -55,6 +55,7 @@ dependencies:
   flutter_inappwebview: ^6.1.5
   file_picker: ^10.3.3
   dio: ^5.7.0
+  jwt_decoder: ^2.0.1
   
 dev_dependencies:
   flutter_test:
