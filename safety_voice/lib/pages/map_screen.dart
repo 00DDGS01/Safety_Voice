@@ -5,6 +5,8 @@ import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import 'package:kpostal/kpostal.dart';
 import 'package:safety_voice/utils/secrets.dart';
 
+const String kakaoRestApiKey = ""; // 팀원 키 아직 미수령
+
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -122,8 +124,8 @@ class _MapScreenState extends State<MapScreen> {
   /// 카메라 정지 시: 중심좌표/원/주소 갱신
   void _handleCameraIdle(LatLng latLng, int level) {
     setState(() => _center = latLng);
-    _updateCircle();            // fire-and-forget
-    _reverseGeocode(latLng);    // fire-and-forget
+    _updateCircle(); // fire-and-forget
+    _reverseGeocode(latLng); // fire-and-forget
   }
 
   /// 원(반지름) 갱신
@@ -202,7 +204,6 @@ class _MapScreenState extends State<MapScreen> {
             onCameraIdle: _handleCameraIdle, // (LatLng, int)
           ),
 
-
           // 중앙 고정 핀
           if (_mapReady)
             const IgnorePointer(
@@ -227,7 +228,8 @@ class _MapScreenState extends State<MapScreen> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 160),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8,
+                          horizontal: 14,
+                          vertical: 8,
                         ),
                         decoration: BoxDecoration(
                           color: selected ? Colors.red : Colors.white,
