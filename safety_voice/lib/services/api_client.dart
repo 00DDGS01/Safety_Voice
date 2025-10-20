@@ -35,4 +35,19 @@ class ApiClient {
     print('🪪 JWT: $token');
     return await http.post(url, headers: headers, body: jsonEncode(body));
   }
+
+  static Future<http.Response> put(String endpoint, dynamic body) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    final headers = {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    final url = Uri.parse('$baseUrl$endpoint');
+    print('➡️ PUT 요청: $url');
+    print('🪪 JWT: $token');
+    return await http.put(url, headers: headers, body: jsonEncode(body));
+  }
 }
