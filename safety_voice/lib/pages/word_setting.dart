@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/home.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,6 +11,8 @@ import 'dart:io';
 
 import 'dart:async';
 import 'dart:math';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WaveformPainter extends CustomPainter {
   final List<double> amplitudes;
@@ -70,7 +74,6 @@ class _SettingScreenState extends State<SettingScreen> {
   double _progressValue = 0.0;
   Timer? _progressTimer;
 
-
   Timer? _timer;
   List<double> waveformData = List.filled(50, 0.0);
   int learningStep = 1; // 1: 준비, 2: 말하기
@@ -98,6 +101,70 @@ class _SettingScreenState extends State<SettingScreen> {
       text: index == 0 ? '112' : '010-1234-5678',
     ),
   );
+
+  Future<void> _saveUserSetting() async {
+    final url = Uri.parse('http://192.168.0.102:8080/api/user/settings');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인 후 이용 가능합니다.')),
+      );
+      return;
+    }
+
+    final body = {
+      "triggerWord": wordController.text,
+      "emergencyTriggerWord": emergencyWordController.text,
+      "isVoiceTrained": isLearningCompleted,
+      "emergencyContacts": phoneControllers
+          .where((controller) => controller.text.isNotEmpty)
+          .map((controller) => {
+                "name": "연락처",
+                "phoneNumber": controller.text,
+              })
+          .toList(),
+    };
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('설정이 성공적으로 저장되었습니다.')),
+          );
+        }
+      } else if (response.statusCode == 403) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그인 인증이 만료되었습니다. 다시 로그인해주세요.')),
+        );
+      } else {
+        debugPrint("❌ 서버 응답 오류: ${response.statusCode}");
+        debugPrint("Response body: ${response.body}");
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('서버 오류: ${response.statusCode}')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("⚠️ 요청 실패: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('서버에 연결할 수 없습니다.')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,7 +274,8 @@ class _SettingScreenState extends State<SettingScreen> {
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed: () {
+                              onPressed: () async {
+                                await _saveUserSetting();
                                 setState(() => isEditing = false);
                               },
                               style: ElevatedButton.styleFrom(
@@ -283,8 +351,7 @@ class _SettingScreenState extends State<SettingScreen> {
                           Navigator.push(
                             context,
                             PageRouteBuilder(
-                              pageBuilder: (_, __, ___) =>
-                                  const SetupScreen(),
+                              pageBuilder: (_, __, ___) => const SetupScreen(),
                               transitionDuration: Duration.zero,
                               reverseTransitionDuration: Duration.zero,
                             ),
@@ -321,7 +388,8 @@ class _SettingScreenState extends State<SettingScreen> {
 
       final dir = await getApplicationDocumentsDirectory();
       final ts = DateTime.now().toIso8601String().replaceAll(':', '-');
-      final safeWord = wordController.text.replaceAll(RegExp(r'[^ㄱ-힣a-zA-Z0-9_-]'), '_');
+      final safeWord =
+          wordController.text.replaceAll(RegExp(r'[^ㄱ-힣a-zA-Z0-9_-]'), '_');
       final path = '${dir.path}/learning_${safeWord}_$ts.m4a';
 
       // 시작
@@ -377,170 +445,166 @@ class _SettingScreenState extends State<SettingScreen> {
     debugPrint('⬆️ 업로드 예정 파일: $filePath');
   }
 
-
 //-----녹음 끝---------------------
 
   // 편집 모드에서만 쓰는 학습하기 카드
-Widget _buildVoiceLearningSection() {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(20),
-    margin: const EdgeInsets.only(bottom: 12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEFF3FF),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: isLearningCompleted ? Colors.green : const Color(0xFF6B73FF),
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              "목소리 학습하기",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-
-        Text(
-          isLearning
-              ? "마이크에 대고 평소 말투로 천천히 말해주세요."
-              : (isLearningCompleted
-                  ? "학습이 완료되었습니다. 필요하면 다시 학습할 수 있어요."
-                  : "사용자의 고유 목소리를 학습해 정확도와 보안을 높입니다."),
-          style: const TextStyle(fontSize: 13, color: Colors.black54),
-        ),
-        const SizedBox(height: 16),
-
-        if (isLearning) ...[
-          LinearProgressIndicator(
-            value: _progressValue,
-            backgroundColor: Colors.grey[300],
-            color: const Color(0xFF6B73FF),
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          const SizedBox(height: 16),
-        ],
-
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: isLearning
-                    ? null
-                    : () async {
-                        // 시작 상태로 전환
-                        setState(() {
-                          isLearning = true;
-                          isLearningCompleted = false;
-                          _progressValue = 0.0;
-                        });
-
-                        // 🔴 실제 녹음 시작
-                        await _startLearningRecording();
-
-                        // 진행바 타이머 시작
-                        _progressTimer?.cancel();
-                        _progressTimer = Timer.periodic(
-                          const Duration(milliseconds: 200),
-                          (timer) async {
-                            if (!mounted) return;
-
-                            setState(() {
-                              _progressValue += 0.05; // 약 4초
-                              if (_progressValue >= 1.0) {
-                                _progressValue = 1.0;
-                              }
-                            });
-
-                            // 완료 시점
-                            if (_progressValue >= 1.0) {
-                              timer.cancel();
-
-                              // 🔵 녹음 저장(정지)
-                              await _stopLearningRecording(save: true);
-
-                              if (!mounted) return;
-                              setState(() {
-                                isLearning = false;
-                                isLearningCompleted = true;
-                              });
-
-                              // (선택) FastAPI 업로드 훅
-                              // if (_lastLearningFilePath != null) {
-                              //   await _uploadToFastAPI(_lastLearningFilePath!);
-                              // }
-                            }
-                          },
-                        );
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6B73FF),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                icon: const Icon(Icons.mic, size: 20),
-                label: Text(
-                  isLearning
-                      ? "학습 중..."
-                      : (isLearningCompleted ? "다시 학습하기" : "학습 시작"),
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600),
+  Widget _buildVoiceLearningSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF3FF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: isLearningCompleted
+                      ? Colors.green
+                      : const Color(0xFF6B73FF),
+                  shape: BoxShape.circle,
                 ),
               ),
-            ),
-            if (isLearning) ...[
               const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: () async {
-                  // 진행바 중단
-                  _progressTimer?.cancel();
-                  // 🟡 사용자 취소 → 파일 삭제
-                  await _stopLearningRecording(save: false);
-
-                  if (!mounted) return;
-                  setState(() {
-                    isLearning = false;
-                    _progressValue = 0.0;
-                  });
-                },
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
-                  foregroundColor: const Color(0xFF6B73FF),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+              const Text(
+                "목소리 학습하기",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
                 ),
-                child: const Text("중지"),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isLearning
+                ? "마이크에 대고 평소 말투로 천천히 말해주세요."
+                : (isLearningCompleted
+                    ? "학습이 완료되었습니다. 필요하면 다시 학습할 수 있어요."
+                    : "사용자의 고유 목소리를 학습해 정확도와 보안을 높입니다."),
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
+          ),
+          const SizedBox(height: 16),
+          if (isLearning) ...[
+            LinearProgressIndicator(
+              value: _progressValue,
+              backgroundColor: Colors.grey[300],
+              color: const Color(0xFF6B73FF),
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            const SizedBox(height: 16),
           ],
-        ),
-      ],
-    ),
-  );
-}
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: isLearning
+                      ? null
+                      : () async {
+                          // 시작 상태로 전환
+                          setState(() {
+                            isLearning = true;
+                            isLearningCompleted = false;
+                            _progressValue = 0.0;
+                          });
 
+                          // 🔴 실제 녹음 시작
+                          await _startLearningRecording();
 
+                          // 진행바 타이머 시작
+                          _progressTimer?.cancel();
+                          _progressTimer = Timer.periodic(
+                            const Duration(milliseconds: 200),
+                            (timer) async {
+                              if (!mounted) return;
 
+                              setState(() {
+                                _progressValue += 0.05; // 약 4초
+                                if (_progressValue >= 1.0) {
+                                  _progressValue = 1.0;
+                                }
+                              });
+
+                              // 완료 시점
+                              if (_progressValue >= 1.0) {
+                                timer.cancel();
+
+                                // 🔵 녹음 저장(정지)
+                                await _stopLearningRecording(save: true);
+
+                                if (!mounted) return;
+                                setState(() {
+                                  isLearning = false;
+                                  isLearningCompleted = true;
+                                });
+
+                                // (선택) FastAPI 업로드 훅
+                                // if (_lastLearningFilePath != null) {
+                                //   await _uploadToFastAPI(_lastLearningFilePath!);
+                                // }
+                              }
+                            },
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6B73FF),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.mic, size: 20),
+                  label: Text(
+                    isLearning
+                        ? "학습 중..."
+                        : (isLearningCompleted ? "다시 학습하기" : "학습 시작"),
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              if (isLearning) ...[
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () async {
+                    // 진행바 중단
+                    _progressTimer?.cancel();
+                    // 🟡 사용자 취소 → 파일 삭제
+                    await _stopLearningRecording(save: false);
+
+                    if (!mounted) return;
+                    setState(() {
+                      isLearning = false;
+                      _progressValue = 0.0;
+                    });
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side:
+                        const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                    foregroundColor: const Color(0xFF6B73FF),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text("중지"),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   // ==== 학습 모달 ====
   // Widget _buildLearningModal() {
@@ -853,8 +917,7 @@ Widget _buildVoiceLearningSection() {
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
     );
   }
 
@@ -865,8 +928,8 @@ Widget _buildVoiceLearningSection() {
         children: [
           const Text(
             '녹음 단어',
-            style:
-                TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w700),
+            style: TextStyle(
+                fontSize: 16, color: Colors.black, fontWeight: FontWeight.w700),
           ),
           const Spacer(),
           SizedBox(
@@ -877,7 +940,9 @@ Widget _buildVoiceLearningSection() {
               textAlign: TextAlign.center,
               textAlignVertical: TextAlignVertical.center,
               style: const TextStyle(
-                  fontSize: 16, color: Color(0xFF6B73FF), fontWeight: FontWeight.w600),
+                  fontSize: 16,
+                  color: Color(0xFF6B73FF),
+                  fontWeight: FontWeight.w600),
               decoration: _inputDeco(hint: '정리하자면'),
             ),
           ),
@@ -893,8 +958,8 @@ Widget _buildVoiceLearningSection() {
         children: [
           const Text(
             '비상 연락 단어',
-            style:
-                TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w700),
+            style: TextStyle(
+                fontSize: 16, color: Colors.black, fontWeight: FontWeight.w700),
           ),
           const Spacer(),
           SizedBox(
@@ -905,7 +970,9 @@ Widget _buildVoiceLearningSection() {
               textAlign: TextAlign.center,
               textAlignVertical: TextAlignVertical.center,
               style: const TextStyle(
-                  fontSize: 16, color: Color(0xFF6B73FF), fontWeight: FontWeight.w600),
+                  fontSize: 16,
+                  color: Color(0xFF6B73FF),
+                  fontWeight: FontWeight.w600),
               decoration: _inputDeco(hint: '잠시만요'),
             ),
           ),
@@ -928,8 +995,10 @@ Widget _buildVoiceLearningSection() {
               const Spacer(),
               const Text(
                 '1번',
-                style:
-                    TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700),
               ),
               const SizedBox(width: 10),
               SizedBox(
@@ -940,24 +1009,26 @@ Widget _buildVoiceLearningSection() {
                   keyboardType: TextInputType.phone,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      fontSize: 15, color: Color(0xFF6B73FF), fontWeight: FontWeight.w600),
+                      fontSize: 15,
+                      color: Color(0xFF6B73FF),
+                      fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
@@ -976,14 +1047,18 @@ Widget _buildVoiceLearningSection() {
             children: [
               const Text(
                 '비상 연락망',
-                style:
-                    TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700),
               ),
               const Spacer(),
               const Text(
                 '2번',
-                style:
-                    TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700),
               ),
               const SizedBox(width: 10),
               SizedBox(
@@ -994,24 +1069,26 @@ Widget _buildVoiceLearningSection() {
                   keyboardType: TextInputType.phone,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      fontSize: 15, color: Color(0xFF6B73FF), fontWeight: FontWeight.w600),
+                      fontSize: 15,
+                      color: Color(0xFF6B73FF),
+                      fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
@@ -1030,8 +1107,10 @@ Widget _buildVoiceLearningSection() {
               const Spacer(),
               const Text(
                 '3번',
-                style:
-                    TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700),
               ),
               const SizedBox(width: 10),
               SizedBox(
@@ -1042,24 +1121,26 @@ Widget _buildVoiceLearningSection() {
                   keyboardType: TextInputType.phone,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      fontSize: 15, color: Color(0xFF6B73FF), fontWeight: FontWeight.w600),
+                      fontSize: 15,
+                      color: Color(0xFF6B73FF),
+                      fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                      borderSide: const BorderSide(
+                          color: Color(0xFF6B73FF), width: 1.5),
                     ),
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
