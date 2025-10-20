@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:safety_voice/pages/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:safety_voice/services/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,25 +51,22 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse('http://10.0.2.2:8080/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'loginId': username, //loginId 필드로 전송
-          'password': password,
-        }),
+      final response = await ApiClient.post(
+        '/api/auth/login',
+        {'loginId': username, 'password': password},
       );
+
+      print("🔍 로그인 응답 코드: ${response.statusCode}");
+      print("📦 응답 본문: ${response.body}");
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // JWT 토큰 저장 (shared_preferences 사용)
         final token = data['data']['token'];
-
-        // SharedPreferences에 JWT 저장
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', token);
 
-        print("로그인 성공, JWT : $token");
+        print("✅ 로그인 성공, JWT: $token");
 
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -86,6 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } catch (e) {
+      print("🚨 로그인 오류: $e");
       setState(() {
         _errorMessage = '서버 연결 오류: $e';
       });
@@ -248,75 +247,42 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                // 로그인 버튼
-                // Container(
-                //   width: double.infinity,
-                //   height: 50,
-                //   child: ElevatedButton(
-                //     onPressed: _isFormValid ? _login : null,
-                //     // onPressed: () => Navigator.pushReplacementNamed(context, '/calenda'),
-                //     style: ElevatedButton.styleFrom(
-                //       backgroundColor: _isFormValid
-                //           ? const Color(0xFF577BE5) // 파란색 (입력 완료시)
-                //           : Colors.grey[400], // 회색 (기본)
-                //       foregroundColor: Colors.white,
-                //       elevation: 0,
-                //       shape: RoundedRectangleBorder(
-                //         borderRadius: BorderRadius.circular(8),
-                //       ),
-                //       disabledBackgroundColor: Colors.grey[300],
-                //     ),
-                //     child: _isLoading
-                //         ? const SizedBox(
-                //             width: 20,
-                //             height: 20,
-                //             child: CircularProgressIndicator(
-                //               color: Colors.white,
-                //               strokeWidth: 2,
-                //             ),
-                //           )
-                //         : const Text(
-                //             '로그인',
-                //             style: TextStyle(
-                //               fontSize: 16,
-                //               fontWeight: FontWeight.w500,
-                //             ),
-                //           ),
-                //   ),
-                // ),
-
+                //로그인 버튼
                 Container(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        PageRouteBuilder(
-                          pageBuilder: (_, __, ___) => const Home(),
-                          transitionDuration: Duration.zero,
-                          reverseTransitionDuration: Duration.zero,
-                        ),
-                      );
-                    },
+                    onPressed: _isFormValid ? _login : null,
+                    // onPressed: () => Navigator.pushReplacementNamed(context, '/calenda'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF577BE5), // 파란색
+                      backgroundColor: _isFormValid
+                          ? const Color(0xFF577BE5) // 파란색 (입력 완료시)
+                          : Colors.grey[400], // 회색 (기본)
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
+                      disabledBackgroundColor: Colors.grey[300],
                     ),
-                    child: const Text(
-                      '로그인',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            '로그인',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                   ),
                 ),
-
 
                 const SizedBox(height: 20),
 
