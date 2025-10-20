@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
@@ -18,17 +17,21 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
-  
   bool isEditing = false;
   bool isSafetyEnabled = true; // 초기값 ON
   bool isAlarmEnabled = true; // 초기값 ON
-  
-  final TextEditingController notiWordController = TextEditingController(text: '배터리 효율을 높이시겠습니까?');
 
-  final TextEditingController wordController = TextEditingController(text: '잠만');
-  final TextEditingController recordSecondsController = TextEditingController(text: '2');
-  final TextEditingController recordCountController = TextEditingController(text: '3');
-  final TextEditingController emergencyCountController = TextEditingController(text: '5');
+  final TextEditingController notiWordController =
+      TextEditingController(text: '배터리 효율을 높이시겠습니까?');
+
+  final TextEditingController wordController =
+      TextEditingController(text: '잠만');
+  final TextEditingController recordSecondsController =
+      TextEditingController(text: '2');
+  final TextEditingController recordCountController =
+      TextEditingController(text: '3');
+  final TextEditingController emergencyCountController =
+      TextEditingController(text: '5');
   final List<TextEditingController> phoneControllers = List.generate(
     3,
     (index) => TextEditingController(
@@ -39,7 +42,7 @@ class _SetupScreenState extends State<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     const Color backgroundColor = Color(0xFFEFF3FF);
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: PreferredSize(
@@ -113,8 +116,6 @@ class _SetupScreenState extends State<SetupScreen> {
           ),
         ),
       ),
-
-
       body: Stack(
         children: [
           Column(
@@ -127,7 +128,6 @@ class _SetupScreenState extends State<SetupScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 20),
-                        
                         if (!isEditing) ...[
                           // 일반 보기 모드
                           _chooseSafeZoneSection(),
@@ -142,16 +142,19 @@ class _SetupScreenState extends State<SetupScreen> {
                         ] else ...[
                           // 편집 모드
                           _buildLocationOneSection(),
-                          SizedBox(height: 12),            
-                          const Divider(color: Color(0xFFCACACA), thickness: 1.0),
+                          SizedBox(height: 12),
+                          const Divider(
+                              color: Color(0xFFCACACA), thickness: 1.0),
                           SizedBox(height: 12),
                           _buildLocationTwoSection(),
-                          SizedBox(height: 12),            
-                          const Divider(color: Color(0xFFCACACA), thickness: 1.0),
+                          SizedBox(height: 12),
+                          const Divider(
+                              color: Color(0xFFCACACA), thickness: 1.0),
                           SizedBox(height: 12),
                           _buildLocationThreeSection(),
-                          SizedBox(height: 12),            
-                          const Divider(color: Color(0xFFCACACA), thickness: 1.0),
+                          SizedBox(height: 12),
+                          const Divider(
+                              color: Color(0xFFCACACA), thickness: 1.0),
                           SizedBox(height: 12),
                           _buildEditNotiWordSection(),
                           SizedBox(height: 40),
@@ -180,7 +183,6 @@ class _SetupScreenState extends State<SetupScreen> {
                             ),
                           ),
                         ],
-                        
                         SizedBox(height: 120),
                       ],
                     ),
@@ -196,7 +198,8 @@ class _SetupScreenState extends State<SetupScreen> {
         height: 80, // 하단바 높이 증가
         child: Material(
           elevation: 20, // 그림자 더 짙게
-          color: const Color.fromARGB(157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
+          color: const Color.fromARGB(
+              157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
           child: Container(
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF), // 하단바 배경 흰색
@@ -213,43 +216,44 @@ class _SetupScreenState extends State<SetupScreen> {
               notchMargin: 8.0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (_, __, ___) => const Home(),
-                        transitionDuration: Duration.zero,
-                        reverseTransitionDuration: Duration.zero,
-                      ),
-                    );
-                  },
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  child: Image.asset('assets/home/recordingList.png', fit: BoxFit.contain),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (_, __, ___) => const SettingScreen(),
-                        transitionDuration: Duration.zero,
-                        reverseTransitionDuration: Duration.zero,
-                      ),
-                    );
-                  },
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  child: Image.asset('assets/home/wordRecognition.png', fit: BoxFit.contain),
-                ),
-                TextButton(
-                  onPressed: () {
-                  },
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  child: Image.asset('assets/home/safeZone_.png', fit: BoxFit.contain),
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const Home(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Image.asset('assets/home/recordingList.png',
+                        fit: BoxFit.contain),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const SettingScreen(),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Image.asset('assets/home/wordRecognition.png',
+                        fit: BoxFit.contain),
+                  ),
+                  TextButton(
+                    onPressed: () {},
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Image.asset('assets/home/safeZone_.png',
+                        fit: BoxFit.contain),
                   ),
                 ],
-
               ),
             ),
           ),
@@ -257,8 +261,6 @@ class _SetupScreenState extends State<SetupScreen> {
       ),
     );
   }
-
- 
 
   // 일반 보기 모드 위젯들
   Widget _chooseSafeZoneSection() {
@@ -269,16 +271,15 @@ class _SetupScreenState extends State<SetupScreen> {
         children: [
           Expanded(
             flex: 3,
-              child: Text(
-                "안전 지대",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+            child: Text(
+              "안전 지대",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
               ),
+            ),
           ),
-
           Expanded(
             flex: 4,
             child: Align(
@@ -296,7 +297,6 @@ class _SetupScreenState extends State<SetupScreen> {
             ),
           ),
         ],
-
       ),
     );
   }
@@ -309,16 +309,15 @@ class _SetupScreenState extends State<SetupScreen> {
         children: [
           Expanded(
             flex: 3,
-              child: Text(
-                "알림 허용",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+            child: Text(
+              "알림 허용",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
               ),
+            ),
           ),
-
           Expanded(
             flex: 4,
             child: Align(
@@ -336,7 +335,6 @@ class _SetupScreenState extends State<SetupScreen> {
             ),
           ),
         ],
-
       ),
     );
   }
@@ -356,28 +354,28 @@ class _SetupScreenState extends State<SetupScreen> {
             ),
           ),
           Spacer(),
-            Container(
-              width: 190,
-              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              decoration: BoxDecoration(
-                color: Color(0xFFE8EAFF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  "안전지대 1번",
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFF6B73FF),
-                    fontWeight: FontWeight.w600,
-                  ),
+          Container(
+            width: 190,
+            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            decoration: BoxDecoration(
+              color: Color(0xFFE8EAFF),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                "안전지대 1번",
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF6B73FF),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-          ],
-        ),
-      );
-    }
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildLocationSection() {
     return Column(
@@ -418,7 +416,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                 ),
               ),
-            SizedBox(width: 10),
+              SizedBox(width: 10),
               GestureDetector(
                 onTap: () => showModalBottomSheet(
                   context: context,
@@ -442,8 +440,6 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                 ),
               ),
-
-
             ],
           ),
         ),
@@ -471,7 +467,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              SizedBox(width:10),
+              SizedBox(width: 10),
               Container(
                 width: 120,
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -514,9 +510,6 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                 ),
               ),
-
-
-            
             ],
           ),
         ),
@@ -578,8 +571,6 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                 ),
               ),
-
-
             ],
           ),
         ),
@@ -602,366 +593,367 @@ class _SetupScreenState extends State<SetupScreen> {
             ),
           ),
           Spacer(),
-            Container(
-              width: 190,
-              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              decoration: BoxDecoration(
-                color: Color(0xFFE8EAFF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  notiWordController.text,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFF6B73FF),
-                    fontWeight: FontWeight.w600,
-                  ),
+          Container(
+            width: 190,
+            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            decoration: BoxDecoration(
+              color: Color(0xFFE8EAFF),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Text(
+                notiWordController.text,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFF6B73FF),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-          ],
-        ),
-      );
-    }
-
-
+          ),
+        ],
+      ),
+    );
+  }
 
 // 편집 모드 위젯들
   Widget _buildLocationOneSection() {
-  return Container(
-    width: double.infinity,
-    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 🔹 제목
-        const Text(
-          '안전지대 1번',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              '위치',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                decoration: InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  hintText: '청주시 서원구 개신동 54, 충북빌라',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
-                  ),
-                  isDense: true,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: () {
-                // 주소 검색 동작
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF6B73FF),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                textStyle: TextStyle(fontSize: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: const Text('주소 검색'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              '시간',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () {
-                // 타임테이블 모달 호출
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Color(0xFFF1F3FF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/clock.png',
-                      width: 16,
-                      height: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      '타임테이블 작성',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF6B73FF),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-
- Widget _buildLocationTwoSection() {
     return Container(
-    width: double.infinity,
-    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 🔹 제목
-        const Text(
-          '안전지대 2번',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 🔹 제목
+          const Text(
+            '안전지대 1번',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              '위치',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                decoration: InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  hintText: '청주시 서원구 개신동 1, 충북대학교',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
-                  ),
-                  isDense: true,
-                ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                '위치',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: () {
-                // 주소 검색 동작
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF6B73FF),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                textStyle: TextStyle(fontSize: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: const Text('주소 검색'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              '시간',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () {
-                // 타임테이블 모달 호출
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Color(0xFFF1F3FF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/clock.png',
-                      width: 16,
-                      height: 16,
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    hintText: '청주시 서원구 개신동 54, 충북빌라',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      '타임테이블 작성',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF6B73FF),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                    ),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  // 주소 검색 동작
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF6B73FF),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  textStyle: TextStyle(fontSize: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                child: const Text('주소 검색'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                '시간',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () {
+                  // 타임테이블 모달 호출
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF1F3FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'assets/clock.png',
+                        width: 16,
+                        height: 16,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      const Text(
+                        '타임테이블 작성',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF6B73FF),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
-  
+  Widget _buildLocationTwoSection() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 🔹 제목
+          const Text(
+            '안전지대 2번',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                '위치',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    hintText: '청주시 서원구 개신동 1, 충북대학교',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                    ),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  // 주소 검색 동작
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF6B73FF),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  textStyle: TextStyle(fontSize: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                child: const Text('주소 검색'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                '시간',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () {
+                  // 타임테이블 모달 호출
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF1F3FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'assets/clock.png',
+                        width: 16,
+                        height: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        '타임테이블 작성',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF6B73FF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildLocationThreeSection() {
     return Container(
-    width: double.infinity,
-    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 🔹 제목
-        const Text(
-          '안전지대 3번',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 🔹 제목
+          const Text(
+            '안전지대 3번',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              '위치',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                decoration: InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  hintText: '대전광역시 유성구 반석동로 123, 108동',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
-                  ),
-                  isDense: true,
-                ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                '위치',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: () {
-                // 주소 검색 동작
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF6B73FF),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                textStyle: TextStyle(fontSize: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: const Text('주소 검색'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              '시간',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () {
-                // 타임테이블 모달 호출
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Color(0xFFF1F3FF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/clock.png',
-                      width: 16,
-                      height: 16,
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    hintText: '대전광역시 유성구 반석동로 123, 108동',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      '타임테이블 작성',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF6B73FF),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                    ),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  // 주소 검색 동작
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF6B73FF),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  textStyle: TextStyle(fontSize: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                child: const Text('주소 검색'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                '시간',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () {
+                  // 타임테이블 모달 호출
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF1F3FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        'assets/clock.png',
+                        width: 16,
+                        height: 16,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      const Text(
+                        '타임테이블 작성',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF6B73FF),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEditNotiWordSection() {
@@ -995,22 +987,26 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: '배터리 효율을 높이시겠습니까?',
-                    hintStyle: TextStyle(color: Color.fromARGB(139, 107, 114, 255).withOpacity(0.5)),
+                    hintStyle: TextStyle(
+                        color: Color.fromARGB(139, 107, 114, 255)
+                            .withOpacity(0.5)),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: BorderSide(color: Color(0xFF6B73FF), width: 1.5),
-                  ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide:
+                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                   ),
                 ),
               ),
@@ -1023,9 +1019,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
   @override
   void dispose() {
-    
     notiWordController.dispose();
-
 
     wordController.dispose();
     recordSecondsController.dispose();
@@ -1042,7 +1036,11 @@ class TimeTableModal extends StatefulWidget {
   final String safeZone; // 안전지대 번호를 저장할 변수
   final bool isEditing;
 
-  const TimeTableModal({super.key, required this.safeZone, required this.isEditing,});
+  const TimeTableModal({
+    super.key,
+    required this.safeZone,
+    required this.isEditing,
+  });
 
   @override
   State<TimeTableModal> createState() => _TimeTableModalState();
@@ -1103,7 +1101,8 @@ class _TimeTableModalState extends State<TimeTableModal> {
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
                         color: const Color(0xFF577BE5),
                         borderRadius: BorderRadius.circular(4),

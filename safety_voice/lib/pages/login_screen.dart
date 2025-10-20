@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:safety_voice/pages/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:safety_voice/services/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,25 +51,22 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse('http://10.0.2.2:8080/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'loginId': username, //loginId 필드로 전송
-          'password': password,
-        }),
+      final response = await ApiClient.post(
+        '/api/auth/login',
+        {'loginId': username, 'password': password},
       );
+
+      print("🔍 로그인 응답 코드: ${response.statusCode}");
+      print("📦 응답 본문: ${response.body}");
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // JWT 토큰 저장 (shared_preferences 사용)
         final token = data['data']['token'];
-
-        // SharedPreferences에 JWT 저장
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', token);
 
-        print("로그인 성공, JWT : $token");
+        print("✅ 로그인 성공, JWT: $token");
 
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -86,6 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } catch (e) {
+      print("🚨 로그인 오류: $e");
       setState(() {
         _errorMessage = '서버 연결 오류: $e';
       });
@@ -248,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                // 로그인 버튼
+                //로그인 버튼
                 Container(
                   width: double.infinity,
                   height: 50,

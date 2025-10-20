@@ -1,24 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart'; // ✅ 추가
-// import 'package:safety_voice/pages/map_screen.dart';
-// import 'package:safety_voice/pages/setup_screen.dart';
-// import 'package:safety_voice/pages/signup_screen.dart';
-// import 'package:safety_voice/pages/word_setting.dart';
-import 'package:safety_voice/pages/splash_screen.dart';
-// import 'pages/main_screen.dart';
-// import 'pages/login_screen.dart';
-// import 'pages/timetable_screen.dart';
-import 'package:safety_voice/services/trigger_listener.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-// import 'package:safety_voice/pages/home.dart';
-// import 'package:safety_voice/pages/nonamed.dart';
-// import 'package:safety_voice/pages/caseFile.dart';
-// import 'package:safety_voice/pages/stopRecord.dart';
+import 'package:safety_voice/pages/word_setting.dart';
+import 'package:safety_voice/pages/splash_screen.dart';
+import 'package:safety_voice/services/trigger_listener.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('ko_KR', null);
+  Intl.defaultLocale = 'ko_KR';
+
   await requestLocationPermission(); // ✅ 위치 권한 요청
+  await _checkAndClearExpiredToken(); // 만료 토큰 초기화
   runApp(const MyApp());
+}
+
+/// ✅ JWT 만료 여부를 확인하고, 만료 시 SharedPreferences 초기화
+Future<void> _checkAndClearExpiredToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('jwt_token');
+
+  if (token != null) {
+    if (JwtDecoder.isExpired(token)) {
+      print("⚠️ 저장된 JWT 토큰이 만료되었습니다. 삭제합니다.");
+      await prefs.remove('jwt_token');
+    } else {
+      print("✅ JWT 토큰이 유효합니다.");
+    }
+  } else {
+    print("ℹ️ 저장된 JWT 토큰이 없습니다.");
+  }
 }
 
 /// ✅ 위치 권한 요청 함수
@@ -55,6 +71,7 @@ class MyApp extends StatelessWidget {
         '/': (context) {
           Future.microtask(() => triggerListener.init(context));
           return const SplashScreen();
+          //return const SettingScreen();
         },
         // '/main': (context) => const MainScreen(),
         // '/login': (context) => const LoginScreen(),

@@ -1,7 +1,5 @@
-// TODO Implement this library.// TODO Implement this library.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 
 class CalendarHome extends StatelessWidget {
   const CalendarHome({super.key});
@@ -16,7 +14,8 @@ class CalendarHome extends StatelessWidget {
     // 날짜 데이터를 생성 (빈칸 포함)
     List<String> calendarDays = [
       ...List.filled(firstDayOfWeek - 1, ''), // 첫 번째 주의 빈칸
-      ...List.generate(daysInMonth, (index) => (index + 1).toString()), // 1일부터 말일까지 추가
+      ...List.generate(
+          daysInMonth, (index) => (index + 1).toString()), // 1일부터 말일까지 추가
     ];
 
     return Scaffold(
@@ -84,7 +83,8 @@ class CalendarHome extends StatelessWidget {
                     int dateIndex = i * 7 + j; // 각 날짜의 인덱스 계산
                     bool isToday = dateIndex >= firstDayOfWeek - 1 &&
                         dateIndex < calendarDays.length &&
-                        calendarDays[dateIndex] == now.day.toString(); // 오늘 날짜인지 확인
+                        calendarDays[dateIndex] ==
+                            now.day.toString(); // 오늘 날짜인지 확인
 
                     return Expanded(
                       child: Container(
@@ -92,7 +92,7 @@ class CalendarHome extends StatelessWidget {
                         child: Align(
                           alignment: Alignment.topLeft, // 텍스트를 왼쪽 위로 정렬
                           child: Container(
-                            margin: const EdgeInsets.only(top: 1.0), 
+                            margin: const EdgeInsets.only(top: 1.0),
                             width: 23.0, // 정사각형 박스 크기
                             height: 23.0,
                             alignment: Alignment.center,
@@ -100,7 +100,8 @@ class CalendarHome extends StatelessWidget {
                               color: isToday
                                   ? Colors.blue // 오늘 날짜는 파란색 배경
                                   : Colors.transparent, // 다른 날짜는 투명
-                              borderRadius: BorderRadius.circular(4.0), // 네모박스의 둥근 모서리
+                              borderRadius:
+                                  BorderRadius.circular(4.0), // 네모박스의 둥근 모서리
                             ),
                             child: Text(
                               dateIndex < calendarDays.length
@@ -108,8 +109,14 @@ class CalendarHome extends StatelessWidget {
                                   : '', // 날짜가 범위 외면 빈칸
                               style: TextStyle(
                                 fontSize: 14.0,
-                                color: isToday ? Colors.white : Colors.black, // 오늘 날짜는 하얀 글씨, 다른 날짜는 검정 글씨
-                                fontWeight: isToday ? FontWeight.bold : FontWeight.normal, // 오늘 날짜는 bold, 다른 날짜는 normal
+                                color: isToday
+                                    ? Colors.white
+                                    : Colors
+                                        .black, // 오늘 날짜는 하얀 글씨, 다른 날짜는 검정 글씨
+                                fontWeight: isToday
+                                    ? FontWeight.bold
+                                    : FontWeight
+                                        .normal, // 오늘 날짜는 bold, 다른 날짜는 normal
                               ),
                             ),
                           ),
@@ -132,7 +139,8 @@ class CalendarHome extends StatelessWidget {
         height: 80, // 하단바 높이 증가
         child: Material(
           elevation: 20, // 그림자 더 짙게
-          color: const Color.fromARGB(157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
+          color: const Color.fromARGB(
+              157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
           child: Container(
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF), // 하단바 배경 흰색
@@ -177,7 +185,6 @@ class CalendarHome extends StatelessWidget {
           ),
         ),
       ),
-
     );
   }
 }
