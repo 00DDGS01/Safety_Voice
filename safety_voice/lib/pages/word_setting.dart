@@ -5,6 +5,7 @@ import 'package:safety_voice/pages/home.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:safety_voice/pages/hint.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -166,6 +167,17 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
+  void _goToHint(BuildContext context) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const HintScreen(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -174,76 +186,72 @@ class _SettingScreenState extends State<SettingScreen> {
         Scaffold(
           backgroundColor: Colors.white,
           appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(90),
-            child: AppBar(
-              backgroundColor: const Color(0xFFEFF3FF),
-              automaticallyImplyLeading: false,
-              elevation: 0,
-              flexibleSpace: SafeArea(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  child: isEditing
-                      ? Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                setState(() => isEditing = false);
-                              },
-                              child: const Icon(
-                                Icons.arrow_back_ios,
-                                color: Colors.black,
-                                size: 24,
-                              ),
-                            ),
-                            const Expanded(
-                              child: Text(
-                                '설정값 수정',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 24),
-                          ],
-                        )
-                      : Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            const Center(
-                              child: Text(
-                                '사용자님의 설정 현황',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              child: TextButton(
-                                onPressed: () {
-                                  setState(() => isEditing = true);
-                                },
-                                child: const Text(
-                                  '수정',
-                                  style: TextStyle(
-                                    color: Color(0xFF6B73FF),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+          preferredSize: const Size.fromHeight(90), // 높이 크게 쓰고 싶으면 유지
+          child: AppBar(
+            backgroundColor: const Color(0xFFEFF3FF),
+            elevation: 0,
+            automaticallyImplyLeading: false, // 우리가 직접 leading 제어
+            centerTitle: true,
+
+            // 툴바 높이/좌우 여유 조정
+            toolbarHeight: 90,           // ← PreferredSize와 맞춤
+            titleSpacing: 0,             // ← 좌측여백 기본 제거(디자인에 따라 조절)
+            leadingWidth: 56,            // ← 좌우 균형 고정폭 (actions와 맞춤)
+
+            // 좌측: 편집이면 뒤로가기, 아니면 hint.png (동일 라인)
+            leading: isEditing
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 22),
+                onPressed: () => setState(() => isEditing = false),
+              )
+            : GestureDetector(
+                onTap: () => _goToHint(context),
+                behavior: HitTestBehavior.opaque,
+                child: Align( // ✅ 수직 가운데 정렬
+                  alignment: Alignment.center,
+                  child: Transform.scale(
+                    scale: 0.5,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Image.asset('assets/hint/hint.png'),
+                    ),
+                  ),
                 ),
               ),
+
+            // 중앙 제목: 상태별 변경
+            title: Text(
+              isEditing ? '설정값 수정' : '사용자님의 설정 현황',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.black,
+              ),
             ),
+
+            // 우측: 편집 중이면 비워서 중앙 정렬 유지, 아니면 '수정' 버튼
+            actions: [
+              if (isEditing)
+                const SizedBox(width: 56) // leadingWidth와 동일 → 항상 정확히 중앙
+              else
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: TextButton(
+                    onPressed: () => setState(() => isEditing = true),
+                    child: const Text(
+                      '수정',
+                      style: TextStyle(
+                        color: Color(0xFF6B73FF),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
           ),
           body: Column(
             children: [
@@ -304,7 +312,7 @@ class _SettingScreenState extends State<SettingScreen> {
             ],
           ),
           bottomNavigationBar: SizedBox(
-            height: 80,
+            height: 130,
             child: Material(
               elevation: 20,
               color: const Color.fromARGB(157, 0, 0, 0),

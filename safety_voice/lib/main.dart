@@ -8,6 +8,7 @@ import 'package:safety_voice/pages/splash_screen.dart';
 import 'package:safety_voice/services/trigger_listener.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:safety_voice/pages/home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,6 +62,7 @@ class MyApp extends StatelessWidget {
     final triggerListener = TriggerListener();
 
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: '안전한 목소리',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -71,7 +73,7 @@ class MyApp extends StatelessWidget {
         '/': (context) {
           Future.microtask(() => triggerListener.init(context));
           return const SplashScreen();
-          //return const SettingScreen();
+          //return const Home();
         },
         // '/main': (context) => const MainScreen(),
         // '/login': (context) => const LoginScreen(),

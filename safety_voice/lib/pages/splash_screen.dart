@@ -35,8 +35,8 @@ class _SplashScreenState extends State<SplashScreen> {
         context,
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => nextScreen,
-          transitionDuration: const Duration(milliseconds: 300),
-          reverseTransitionDuration: const Duration(milliseconds: 300),
+          transitionDuration: const Duration(milliseconds: 700),
+          reverseTransitionDuration: const Duration(milliseconds:700),
           transitionsBuilder: (_, animation, __, child) {
             return FadeTransition(
               opacity: animation,
