@@ -95,7 +95,7 @@ class _StopRecordState extends State<StopRecord> {
     _recorder.closeRecorder();
 
     // ✅ 녹음 종료 후 STT 재시작
-    TriggerListener().restart(context);
+    TriggerListener.instance.resumeListening();
 
     super.dispose();
   }
@@ -172,7 +172,7 @@ class _StopRecordState extends State<StopRecord> {
                 // ⬅ 뒤로가기 버튼
                 ElevatedButton(
                   onPressed: () {
-                    TriggerListener().restart(context);
+                    TriggerListener.instance.resumeListening();
                     Navigator.pushReplacement(
                       context,
                       PageRouteBuilder(

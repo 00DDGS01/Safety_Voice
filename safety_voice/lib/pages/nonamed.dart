@@ -9,6 +9,7 @@ import 'package:safety_voice/services/gpt_service.dart';
 import 'package:safety_voice/services/whisper_service.dart';
 import 'dart:typed_data';
 import 'package:safety_voice/utils/secrets.dart';
+import 'package:safety_voice/services/trigger_listener.dart';
 
 class Nonamed extends StatefulWidget {
   const Nonamed({super.key});
@@ -103,24 +104,27 @@ class _NonamedState extends State<Nonamed> {
   }
 
   // 📌 오디오 재생 및 정지 기능
-  Future<void> _togglePlayback(String filePath, bool isAsset) async {
-    try {
-      if (_currentPlayingFile == filePath) {
-        await _audioPlayer.stop();
-        setState(() => _currentPlayingFile = null);
+Future<void> _togglePlayback(String filePath, bool isAsset) async {
+  try {
+    if (_currentPlayingFile == filePath) {
+      await _audioPlayer.stop();
+      TriggerListener.instance.resumeListening(); // ✅ 재생 중지 → STT 재시작
+      setState(() => _currentPlayingFile = null);
+    } else {
+      TriggerListener.instance.pauseListening(); // ✅ 재생 시작 → STT 일시 정지
+      if (isAsset) {
+        await _audioPlayer.play(
+          AssetSource(filePath.replaceFirst("assets/", "")),
+        );
       } else {
-        if (isAsset) {
-          await _audioPlayer
-              .play(AssetSource(filePath.replaceFirst("assets/", "")));
-        } else {
-          await _audioPlayer.play(DeviceFileSource(filePath));
-        }
-        setState(() => _currentPlayingFile = filePath);
+        await _audioPlayer.play(DeviceFileSource(filePath));
       }
-    } catch (e) {
-      print('🚨 오디오 재생 오류: $e');
+      setState(() => _currentPlayingFile = filePath);
     }
+  } catch (e) {
+    print('🚨 오디오 재생 오류: $e');
   }
+}
 
   @override
   void dispose() {

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.safety_voice"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "25.1.8937393"
 
     compileOptions {
