@@ -135,10 +135,11 @@ class _HomeState extends State<Home> {
     super.initState();
     _year = _today.year;
     _month = _today.month;
-    _loadJsonData().then((_) {
-      _reconcileAllCases();
+    _loadJsonData().then((_) async {
+      await _reconcileAllCases();
+      await _rebuildCalendarFromLocal();
     });
-    _loadRecordBadges();
+    //_loadRecordBadges();
   }
 
   Future<void> _loadJsonData() async {
@@ -304,6 +305,7 @@ class _HomeState extends State<Home> {
                         );
 
                         await _reconcileAllCases(); // 또는 await _loadJsonData();
+                        await _rebuildCalendarFromLocal();
                         setState(() {});
                       },
                       child: Container(
@@ -341,8 +343,8 @@ class _HomeState extends State<Home> {
                       ),
                     )
                   : GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           PageRouteBuilder(
                             pageBuilder: (_, __, ___) => CaseFile(
@@ -357,7 +359,11 @@ class _HomeState extends State<Home> {
                             transitionDuration: Duration.zero,
                             reverseTransitionDuration: Duration.zero,
                           ),
-                        ).then((_) => _reconcileAllCases()); // ← 밑줄 붙인 메서드로!
+                        );
+
+                        await _reconcileAllCases();
+                        await _rebuildCalendarFromLocal(); // ★ 달력 갱신
+                        if (mounted) setState(() {}); // (옵션) 화면 리프레시
                       },
                       child: _buildFileBox(
                         title: fileData[i - 1]['title'],
@@ -945,6 +951,67 @@ class _HomeState extends State<Home> {
         child: Icon(icon, color: selected ? Colors.white : Colors.black),
       ),
     );
+  }
+
+  // Home.dart 맨 아래 유틸들 근처에 추가
+  Future<void> _rebuildCalendarFromLocal() async {
+    try {
+      final map = <String, List<RecordBadge>>{};
+
+      for (final item in fileData) {
+        final title = (item['title'] ?? '').toString().trim();
+        if (title.isEmpty) continue;
+
+        // 사건 컬러(뱃지 색) 사용
+        final Color bg = Color(
+            int.parse(item['color'].toString().replaceFirst('#', '0xFF')));
+        final Color fg = Color(
+            int.parse(item['textColor'].toString().replaceFirst('#', '0xFF')));
+
+        final dir = await _caseDir(title);
+        if (!await dir.exists()) continue;
+
+        await for (final ent in dir.list(followLinks: false)) {
+          if (ent is! File) continue;
+          if (!_isAudio(ent.path)) continue;
+
+          try {
+            final stat = await ent.stat();
+            final dt = stat.modified; // 파일 수정일 기준 (원하면 파일명 파싱으로 교체)
+            final now = DateTime.now();
+            // 미래 날짜 방지
+            if (DateTime(dt.year, dt.month, dt.day)
+                .isAfter(DateTime(now.year, now.month, now.day))) {
+              continue;
+            }
+
+            final hh = dt.hour.toString().padLeft(2, '0');
+            final mm = dt.minute.toString().padLeft(2, '0');
+
+            // 길이 필요 없으면 1분으로 표기(단순 표시 목적)
+            final badge = RecordBadge(
+              time: '$hh$mm',
+              minutes: 1,
+              bg: bg,
+              fg: fg,
+              title: '$hh$mm  1분',
+            );
+
+            final key = _dayKey(dt.year, dt.month, dt.day);
+            (map[key] ??= <RecordBadge>[]).add(badge);
+          } catch (e) {
+            debugPrint('calendar item skip (${ent.path}): $e');
+          }
+        }
+      }
+
+      // 같은 날 안에서는 시간순으로 정렬
+      map.forEach((_, list) => list.sort((a, b) => a.time.compareTo(b.time)));
+
+      if (mounted) setState(() => _records = map);
+    } catch (e) {
+      debugPrint('rebuildCalendarFromLocal error: $e');
+    }
   }
 }
 
