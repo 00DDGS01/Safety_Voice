@@ -68,6 +68,8 @@ class SettingScreen extends StatefulWidget {
 }
 
 class _SettingScreenState extends State<SettingScreen> {
+  bool _isUserSettingLoaded = false;
+  bool _settingsLoadedOnce = false;
   bool isEditing = false;
   bool isLearning = false;
   bool isRecording = false;
@@ -103,8 +105,91 @@ class _SettingScreenState extends State<SettingScreen> {
     ),
   );
 
+  @override
+  void initState() {
+    super.initState();
+    _loadUserSetting();
+  }
+
+  Future<void> _loadUserSettingOnce() async {
+    if (_settingsLoadedOnce) return;
+    _settingsLoadedOnce = true;
+    await _loadUserSetting();
+  }
+
+  Future<void> _loadUserSetting() async {
+    debugPrint('🔍 서버에서 사용자 설정 불러오기 시작');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    if (token == null) {
+      debugPrint('❌ JWT 토큰 없음 — 로그인 필요');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그인 후 이용 가능합니다.')),
+        );
+      }
+      return;
+    }
+
+    final url = Uri.parse('https://safetyvoice.jp.ngrok.io/api/user/settings');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json; charset=utf-8",
+          'Accept': 'application/json; charset=utf-8',
+        },
+      );
+
+      // ✅ 응답 본문을 UTF-8로 강제 디코딩
+      final utf8Body = utf8.decode(response.bodyBytes);
+      debugPrint('📦 서버 응답 원문 (UTF-8): $utf8Body');
+
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(utf8Body);
+        final data = jsonData['data'];
+
+        setState(() {
+          wordController.text = data['triggerWord'] ?? '';
+          emergencyWordController.text = data['emergencyTriggerWord'] ?? '';
+          isLearningCompleted = data['isVoiceTrained'] ?? false;
+
+          final contacts = data['emergencyContacts'] as List<dynamic>? ?? [];
+          for (int i = 0;
+              i < contacts.length && i < phoneControllers.length;
+              i++) {
+            phoneControllers[i].text = contacts[i]['phoneNumber'] ?? '';
+          }
+
+          _isUserSettingLoaded = true;
+        });
+
+        debugPrint('✅ 서버에서 사용자 설정 불러오기 성공');
+      } else if (response.statusCode == 403) {
+        debugPrint('❌ 인증 만료 — 다시 로그인 필요');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('로그인 인증이 만료되었습니다. 다시 로그인해주세요.')),
+          );
+        }
+      } else {
+        debugPrint('❌ 서버 오류: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('⚠️ 서버 통신 실패: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('서버에 연결할 수 없습니다.')),
+        );
+      }
+    }
+  }
+
   Future<void> _saveUserSetting() async {
-    final url = Uri.parse('http://192.168.0.102:8080/api/user/settings');
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
@@ -115,6 +200,7 @@ class _SettingScreenState extends State<SettingScreen> {
       return;
     }
 
+    final url = Uri.parse('https://safetyvoice.jp.ngrok.io/api/user/settings');
     final body = {
       "triggerWord": wordController.text,
       "emergencyTriggerWord": emergencyWordController.text,
@@ -132,13 +218,19 @@ class _SettingScreenState extends State<SettingScreen> {
       final response = await http.put(
         url,
         headers: {
-          "Content-Type": "application/json",
           "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
         },
         body: jsonEncode(body),
       );
 
+      // ✅ 응답 본문을 UTF-8로 강제 디코딩
+      final utf8Body = utf8.decode(response.bodyBytes);
+      final jsonData = jsonDecode(utf8Body);
+      debugPrint('📦 서버 응답 원문 (UTF-8): $utf8Body');
+
       if (response.statusCode == 200) {
+        debugPrint('✅ 서버에 사용자 설정 저장 완료');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('설정이 성공적으로 저장되었습니다.')),
@@ -149,8 +241,8 @@ class _SettingScreenState extends State<SettingScreen> {
           const SnackBar(content: Text('로그인 인증이 만료되었습니다. 다시 로그인해주세요.')),
         );
       } else {
-        debugPrint("❌ 서버 응답 오류: ${response.statusCode}");
-        debugPrint("Response body: ${response.body}");
+        debugPrint('❌ 서버 오류: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('서버 오류: ${response.statusCode}')),
@@ -158,10 +250,10 @@ class _SettingScreenState extends State<SettingScreen> {
         }
       }
     } catch (e) {
-      debugPrint("⚠️ 요청 실패: $e");
+      debugPrint('⚠️ 요청 실패: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('서버에 연결할 수 없습니다.')),
+          const SnackBar(content: Text('서버에 연결할 수 없습니다.')),
         );
       }
     }
