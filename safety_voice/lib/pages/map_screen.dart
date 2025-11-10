@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:safety_voice/services/trigger_listener.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -24,6 +25,7 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _initLocation();
+    _listenToLocationChanges(); // ✅ 실시간 위치 감시 시작
   }
 
   Future<void> _initLocation() async {
@@ -40,6 +42,27 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
   }
+
+  bool _isInSafeZone = false; // 현재 안전지대 안에 있는지 여부
+
+void _listenToLocationChanges() {
+  _location.onLocationChanged.listen((locData) {
+    if (_center == null) return; // 아직 안전지대 설정 안 했으면 무시
+
+    final currentPos = LatLng(locData.latitude!, locData.longitude!);
+    final distance = _calculateDistance(_center!, currentPos);
+
+    if (distance <= _radius && !_isInSafeZone) {
+      _isInSafeZone = true;
+      print("🛑 안전지대 진입 → 마이크 정지");
+      TriggerListener.instance.stopListening(); // ✅ 마이크 정지
+    } else if (distance > _radius && _isInSafeZone) {
+      _isInSafeZone = false;
+      print("✅ 안전지대 벗어남 → 마이크 재개");
+      TriggerListener.instance.startListening(); // ✅ 마이크 재시작
+    }
+  });
+}
 
   double getZoomFromRadius(double radius) {
     if (radius <= 20) return 18.5;
@@ -192,4 +215,16 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
+}
+//거리 계산 함수
+double _calculateDistance(LatLng p1, LatLng p2) {
+  const R = 6371000; // 지구 반지름(m)
+  final dLat = (p2.latitude - p1.latitude) * (pi / 180);
+  final dLon = (p2.longitude - p1.longitude) * (pi / 180);
+  final a = sin(dLat / 2) * sin(dLat / 2) +
+      cos(p1.latitude * (pi / 180)) *
+      cos(p2.latitude * (pi / 180)) *
+      sin(dLon / 2) * sin(dLon / 2);
+  final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+  return R * c; // 거리(m)
 }

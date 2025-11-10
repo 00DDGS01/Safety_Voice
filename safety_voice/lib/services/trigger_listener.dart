@@ -101,4 +101,15 @@ class TriggerListener {
       print("⚠️ STT 재시작 조건 아님");
     }
   }
+
+  // ✅ 안전지대용: STT / 마이크 제어
+  void stopListening() {
+    print("🎙️ [TriggerListener] 안전지대 진입 → STT 정지");
+    pauseListening(); // 기존 일시정지 함수 호출
+  }
+
+  void startListening() {
+    print("🎙️ [TriggerListener] 안전지대 벗어남 → STT 재시작");
+    resumeListening(); // 기존 재시작 함수 호출
+  }
 }
