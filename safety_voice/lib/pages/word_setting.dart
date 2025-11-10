@@ -186,72 +186,73 @@ class _SettingScreenState extends State<SettingScreen> {
         Scaffold(
           backgroundColor: Colors.white,
           appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(90), // 높이 크게 쓰고 싶으면 유지
-          child: AppBar(
-            backgroundColor: const Color(0xFFEFF3FF),
-            elevation: 0,
-            automaticallyImplyLeading: false, // 우리가 직접 leading 제어
-            centerTitle: true,
+            preferredSize: const Size.fromHeight(90), // 높이 크게 쓰고 싶으면 유지
+            child: AppBar(
+              backgroundColor: const Color(0xFFEFF3FF),
+              elevation: 0,
+              automaticallyImplyLeading: false, // 우리가 직접 leading 제어
+              centerTitle: true,
 
-            // 툴바 높이/좌우 여유 조정
-            toolbarHeight: 90,           // ← PreferredSize와 맞춤
-            titleSpacing: 0,             // ← 좌측여백 기본 제거(디자인에 따라 조절)
-            leadingWidth: 56,            // ← 좌우 균형 고정폭 (actions와 맞춤)
+              // 툴바 높이/좌우 여유 조정
+              toolbarHeight: 90, // ← PreferredSize와 맞춤
+              titleSpacing: 0, // ← 좌측여백 기본 제거(디자인에 따라 조절)
+              leadingWidth: 56, // ← 좌우 균형 고정폭 (actions와 맞춤)
 
-            // 좌측: 편집이면 뒤로가기, 아니면 hint.png (동일 라인)
-            leading: isEditing
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 22),
-                onPressed: () => setState(() => isEditing = false),
-              )
-            : GestureDetector(
-                onTap: () => _goToHint(context),
-                behavior: HitTestBehavior.opaque,
-                child: Align( // ✅ 수직 가운데 정렬
-                  alignment: Alignment.center,
-                  child: Transform.scale(
-                    scale: 0.5,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Image.asset('assets/hint/hint.png'),
+              // 좌측: 편집이면 뒤로가기, 아니면 hint.png (동일 라인)
+              leading: isEditing
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back_ios,
+                          color: Colors.black, size: 22),
+                      onPressed: () => setState(() => isEditing = false),
+                    )
+                  : GestureDetector(
+                      onTap: () => _goToHint(context),
+                      behavior: HitTestBehavior.opaque,
+                      child: Align(
+                        // ✅ 수직 가운데 정렬
+                        alignment: Alignment.center,
+                        child: Transform.scale(
+                          scale: 0.5,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Image.asset('assets/hint/hint.png'),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+
+              // 중앙 제목: 상태별 변경
+              title: Text(
+                isEditing ? '설정값 수정' : '사용자님의 설정 현황',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.black,
                 ),
               ),
 
-            // 중앙 제목: 상태별 변경
-            title: Text(
-              isEditing ? '설정값 수정' : '사용자님의 설정 현황',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: Colors.black,
-              ),
-            ),
-
-            // 우측: 편집 중이면 비워서 중앙 정렬 유지, 아니면 '수정' 버튼
-            actions: [
-              if (isEditing)
-                const SizedBox(width: 56) // leadingWidth와 동일 → 항상 정확히 중앙
-              else
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: TextButton(
-                    onPressed: () => setState(() => isEditing = true),
-                    child: const Text(
-                      '수정',
-                      style: TextStyle(
-                        color: Color(0xFF6B73FF),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+              // 우측: 편집 중이면 비워서 중앙 정렬 유지, 아니면 '수정' 버튼
+              actions: [
+                if (isEditing)
+                  const SizedBox(width: 56) // leadingWidth와 동일 → 항상 정확히 중앙
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: TextButton(
+                      onPressed: () => setState(() => isEditing = true),
+                      child: const Text(
+                        '수정',
+                        style: TextStyle(
+                          color: Color(0xFF6B73FF),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          ),
-
+              ],
+            ),
           ),
           body: Column(
             children: [
@@ -283,6 +284,57 @@ class _SettingScreenState extends State<SettingScreen> {
                             height: 56,
                             child: ElevatedButton(
                               onPressed: () async {
+                                if (!mounted) return;
+
+                                // 먼저 다이얼로그 띄우기
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    content: const Text('정말로 설정값을 수정하시겠습니까?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        style: ElevatedButton.styleFrom(
+                                          foregroundColor: const Color.fromARGB(
+                                              255, 65, 65, 65),
+                                        ),
+                                        child: const Text('취소'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        style: ElevatedButton.styleFrom(
+                                          foregroundColor: const Color.fromARGB(
+                                              255, 65, 65, 65),
+                                        ),
+                                        child: const Text('수정'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                // 사용자가 확인 눌렀을 때만 실행
+                                if (confirmed == true) {
+                                  setState(() => isEditing = false);
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('설정값이 수정되었습니다.'),
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: const Duration(seconds: 2),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8)),
+                                      margin: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                    ),
+                                  );
+                                }
+
                                 await _saveUserSetting();
                                 setState(() => isEditing = false);
                               },

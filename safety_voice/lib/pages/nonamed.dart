@@ -10,6 +10,61 @@ import 'package:safety_voice/services/whisper_service.dart';
 import 'dart:typed_data';
 import 'package:safety_voice/utils/secrets.dart';
 import 'package:safety_voice/services/trigger_listener.dart';
+import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
+
+Future<File> _localDataJsonFile() async {
+  final dir = await getApplicationDocumentsDirectory();
+  return File(p.join(dir.path, 'data.json'));
+}
+
+Future<List<Map<String, dynamic>>> _readDataJson() async {
+  final f = await _localDataJsonFile();
+  if (!await f.exists()) return [];
+  final raw = await f.readAsString();
+  final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+  return list;
+}
+
+Future<void> _writeDataJson(List<Map<String, dynamic>> items) async {
+  final f = await _localDataJsonFile();
+  final tmp = File('${f.path}.tmp');
+  await tmp.writeAsString(jsonEncode(items), flush: true);
+  if (await f.exists()) await f.delete();
+  await tmp.rename(f.path);
+}
+
+int _parseSizeToBytes(String s) {
+  final m = RegExp(r'^\s*([\d.]+)\s*(B|KB|MB|GB|TB)\s*$', caseSensitive: false)
+      .firstMatch(s.trim());
+  if (m == null) return 0;
+  final numVal = double.tryParse(m.group(1)!) ?? 0.0;
+  final unit = (m.group(2) ?? 'B').toUpperCase();
+  const k = 1024.0;
+  switch (unit) {
+    case 'TB':
+      return (numVal * k * k * k * k).round();
+    case 'GB':
+      return (numVal * k * k * k).round();
+    case 'MB':
+      return (numVal * k * k).round();
+    case 'KB':
+      return (numVal * k).round();
+    default:
+      return numVal.round();
+  }
+}
+
+String _formatBytes(int bytes) {
+  const k = 1024.0;
+  if (bytes >= k * k * k * k)
+    return '${(bytes / (k * k * k * k)).toStringAsFixed(2)}TB';
+  if (bytes >= k * k * k)
+    return '${(bytes / (k * k * k)).toStringAsFixed(2)}GB';
+  if (bytes >= k * k) return '${(bytes / (k * k)).toStringAsFixed(1)}MB';
+  if (bytes >= k) return '${(bytes / k).toStringAsFixed(0)}KB';
+  return '${bytes}B';
+}
 
 class Nonamed extends StatefulWidget {
   const Nonamed({super.key});
@@ -22,6 +77,7 @@ class _NonamedState extends State<Nonamed> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentPlayingFile;
   List<Map<String, dynamic>> audioFiles = [];
+  bool _changed = false;
 
   @override
   void initState() {
@@ -104,27 +160,27 @@ class _NonamedState extends State<Nonamed> {
   }
 
   // 📌 오디오 재생 및 정지 기능
-Future<void> _togglePlayback(String filePath, bool isAsset) async {
-  try {
-    if (_currentPlayingFile == filePath) {
-      await _audioPlayer.stop();
-      TriggerListener.instance.resumeListening(); // ✅ 재생 중지 → STT 재시작
-      setState(() => _currentPlayingFile = null);
-    } else {
-      TriggerListener.instance.pauseListening(); // ✅ 재생 시작 → STT 일시 정지
-      if (isAsset) {
-        await _audioPlayer.play(
-          AssetSource(filePath.replaceFirst("assets/", "")),
-        );
+  Future<void> _togglePlayback(String filePath, bool isAsset) async {
+    try {
+      if (_currentPlayingFile == filePath) {
+        await _audioPlayer.stop();
+        TriggerListener.instance.resumeListening(); // ✅ 재생 중지 → STT 재시작
+        setState(() => _currentPlayingFile = null);
       } else {
-        await _audioPlayer.play(DeviceFileSource(filePath));
+        TriggerListener.instance.pauseListening(); // ✅ 재생 시작 → STT 일시 정지
+        if (isAsset) {
+          await _audioPlayer.play(
+            AssetSource(filePath.replaceFirst("assets/", "")),
+          );
+        } else {
+          await _audioPlayer.play(DeviceFileSource(filePath));
+        }
+        setState(() => _currentPlayingFile = filePath);
       }
-      setState(() => _currentPlayingFile = filePath);
+    } catch (e) {
+      print('🚨 오디오 재생 오류: $e');
     }
-  } catch (e) {
-    print('🚨 오디오 재생 오류: $e');
   }
-}
 
   @override
   void dispose() {
@@ -144,7 +200,9 @@ Future<void> _togglePlayback(String filePath, bool isAsset) async {
           automaticallyImplyLeading: false,
           leading: IconButton(
             icon: Image.asset('assets/images/back.png', height: 24),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(context, true); // ← 홈으로 true 전달
+            },
           ),
           title: Text(
             "이름 없는 파일",
@@ -245,14 +303,70 @@ Future<void> _togglePlayback(String filePath, bool isAsset) async {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             GestureDetector(
-                              onTap: () {
-                                Navigator.push(
+                              onTap: () async {
+                                final result =
+                                    await Navigator.push<Map<String, String>>(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => CaseFileSelectPage(
                                         sourceFile: File(file['path'])),
                                   ),
                                 );
+
+                                if (result != null) {
+                                  final movedTitle = result['title']!;
+                                  final movedPath = result['path']!;
+                                  final movedBytes =
+                                      int.tryParse(result['bytes'] ?? '0') ?? 0;
+
+                                  // 1) data.json 업데이트
+                                  final list = await _readDataJson();
+                                  final idx = list.indexWhere(
+                                      (e) => (e['title'] ?? '') == movedTitle);
+                                  if (idx >= 0) {
+                                    final item =
+                                        Map<String, dynamic>.from(list[idx]);
+                                    final oldCount =
+                                        (item['count'] as num? ?? 0).toInt();
+                                    final oldSizeBytes = _parseSizeToBytes(
+                                        (item['size'] as String? ?? '0B'));
+                                    final newBytesTotal =
+                                        oldSizeBytes + movedBytes;
+
+                                    item['count'] = oldCount + 1;
+                                    item['recent'] = DateFormat('yyyy-MM-dd')
+                                        .format(DateTime.now());
+                                    item['size'] = _formatBytes(newBytesTotal);
+
+                                    list[idx] = item;
+                                    await _writeDataJson(list);
+                                  }
+
+                                  // 2) recording_list.txt에서도 제거
+                                  final dir =
+                                      await getApplicationDocumentsDirectory();
+                                  final listFile =
+                                      File('${dir.path}/recording_list.txt');
+                                  if (await listFile.exists()) {
+                                    final lines = await listFile.readAsLines();
+                                    lines.remove(file['path']);
+                                    await listFile
+                                        .writeAsString(lines.join('\n'));
+                                  }
+
+                                  // 3) Nonamed 리스트에서 제거 + 스낵바
+                                  if (!mounted) return;
+                                  setState(() {
+                                    audioFiles.remove(file);
+                                    if (_currentPlayingFile == file["path"])
+                                      _currentPlayingFile = null;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(
+                                            '‘$movedTitle’로 이동: ${p.basename(movedPath)}')),
+                                  );
+                                }
                               },
                               child: Image.asset('assets/images/transfer.png',
                                   width: 24, height: 24),
@@ -279,7 +393,7 @@ Future<void> _togglePlayback(String filePath, bool isAsset) async {
                           child: const Text(
                             "GPT로 요약하기",
                             style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 10,
                                 color: Color.fromARGB(255, 87, 123, 229)),
                           ),
                         ),
