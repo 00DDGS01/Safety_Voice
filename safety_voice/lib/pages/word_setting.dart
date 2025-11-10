@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/home.dart';
+import 'package:safety_voice/services/trigger_listener.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -152,6 +153,16 @@ class _SettingScreenState extends State<SettingScreen> {
         final jsonData = jsonDecode(utf8Body);
         final data = jsonData['data'];
 
+        await prefs.setString('trigger_word', data['triggerWord'] ?? '');
+        await prefs.setString(
+            'emergency_trigger_word', data['emergencyTriggerWord'] ?? '');
+        await prefs.setBool(
+            'is_voice_trained', data['isVoiceTrained'] ?? false);
+        await prefs.setString(
+            'emergency_contacts', jsonEncode(data['emergencyContacts'] ?? []));
+
+        print("✅ SharedPreferences 서버 데이터로 갱신 완료");
+
         setState(() {
           wordController.text = data['triggerWord'] ?? '';
           emergencyWordController.text = data['emergencyTriggerWord'] ?? '';
@@ -231,6 +242,7 @@ class _SettingScreenState extends State<SettingScreen> {
 
       if (response.statusCode == 200) {
         debugPrint('✅ 서버에 사용자 설정 저장 완료');
+        await TriggerListener.instance.refreshWords();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('설정이 성공적으로 저장되었습니다.')),
