@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  static const String baseUrl = 'http://192.168.0.102:8080'; // ⚠️ 맥북 IP
+  static const String baseUrl = 'https://safetyvoice.jp.ngrok.io'; // ⚠️ 맥북 IP
 
   static Future<http.Response> get(String endpoint) async {
     final prefs = await SharedPreferences.getInstance();

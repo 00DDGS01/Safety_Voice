@@ -201,7 +201,7 @@ class _SetupScreenState extends State<SetupScreen> {
         ],
       ),
       bottomNavigationBar: SizedBox(
-        height: 130, // 하단바 높이 증가
+        height: 80, // 하단바 높이 증가
         child: Material(
           elevation: 20, // 그림자 더 짙게
           color: const Color.fromARGB(157, 0, 0, 0), // Material 배경 투명하게 (테두리 잘 보이게)
