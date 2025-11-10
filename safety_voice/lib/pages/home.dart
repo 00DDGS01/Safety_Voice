@@ -8,6 +8,7 @@ import 'package:safety_voice/pages/setup_screen.dart';
 import 'package:safety_voice/pages/nonamed.dart';
 import 'package:safety_voice/pages/caseFile.dart';
 import 'package:safety_voice/pages/stopRecord.dart';
+import 'package:safety_voice/pages/hint.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -59,6 +60,17 @@ class _HomeState extends State<Home> {
     }
   }
 
+  void _goToHint(BuildContext context) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const HintScreen(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color backgroundColor = Color(0xFFEFF3FF);
@@ -70,6 +82,17 @@ class _HomeState extends State<Home> {
         backgroundColor: backgroundColor,
         elevation: 0,
         centerTitle: true,
+        leading: GestureDetector(
+          onTap: () => _goToHint(context),
+          behavior: HitTestBehavior.opaque,
+          child: Transform.scale(
+            scale: 0.5,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Image.asset('assets/hint/hint.png'),
+            ),
+          ),
+        ),
         title: Text(
           isCalendarMode ? '달력' : '파일 목록',
           style: const TextStyle(

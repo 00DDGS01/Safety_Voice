@@ -67,7 +67,7 @@ class _CalendarHomeState extends State<CalendarHome> {
       body: isCalendarMode ? _buildCalendarPopup() : _buildListMode(),
       
       bottomNavigationBar: SizedBox(
-        height: 80,
+        height: 110,
         child: Material(
           elevation: 20,
           color: const Color.fromARGB(157, 0, 0, 0),
