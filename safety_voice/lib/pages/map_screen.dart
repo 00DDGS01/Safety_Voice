@@ -1,11 +1,9 @@
-import 'dart:convert';
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:kakao_map_plugin/kakao_map_plugin.dart';
-import 'package:kpostal/kpostal.dart';
-import 'package:safety_voice/utils/secrets.dart';
-
-const String kakaoRestApiKey = ""; // 팀원 키 아직 미수령
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
+import 'package:safety_voice/services/trigger_listener.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -15,255 +13,218 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  late KakaoMapController _mapController;
+  late GoogleMapController _mapController;
+  final Location _location = Location();
 
-  // 초기 중심 (충북대 신관 근처) — const 사용 금지
-  LatLng _center = LatLng(36.6283, 127.4581);
+  LatLng? _center; // ✅ null이면 원 표시 안 함
+  double _radius = 100;
+  bool _isEditing = false; // ✅ 토글 on/off
+  final List<double> _radiusOptions = [20, 50, 100, 200];
 
-  // 주소 표기
-  String _address = '주소 검색 또는 지도를 이동해 위치를 선택하세요';
-
-  // 직경 옵션(10/20/30m) — 지도 원 radius는 직경/2
-  final List<double> _diameterOptions = [10, 20, 30];
-  double _selectedDiameter = 20; // m
-
-  bool _mapReady = false;
-  bool _circleAdded = false;
-
-  double get _circleRadiusMeters => _selectedDiameter / 2.0;
-
-  Future<void> _moveCamera(LatLng pos, {int level = 3}) async {
-    await _mapController.setCenter(pos);
-    await _mapController.setLevel(level); // kakao_map_plugin은 level 사용
+  @override
+  void initState() {
+    super.initState();
+    _initLocation();
+    _listenToLocationChanges(); // ✅ 실시간 위치 감시 시작
   }
 
-  /// 주소 -> 좌표 (카카오 Local REST: address search)
-  Future<LatLng?> _geocodeAddress(String address) async {
-    final url = Uri.https(
-      'dapi.kakao.com',
-      '/v2/local/search/address.json',
-      {'query': address},
-    );
+  Future<void> _initLocation() async {
+    final hasPermission = await _location.requestPermission();
+    final serviceEnabled = await _location.requestService();
 
-    final resp = await http.get(
-      url,
-      headers: {'Authorization': 'KakaoAK $kakaoRestApiKey'},
-    );
-
-    if (resp.statusCode == 200) {
-      final data = json.decode(resp.body) as Map<String, dynamic>;
-      final docs = (data['documents'] as List?) ?? [];
-      if (docs.isNotEmpty) {
-        final x = double.tryParse(docs.first['x'].toString()); // longitude
-        final y = double.tryParse(docs.first['y'].toString()); // latitude
-        if (x != null && y != null) {
-          return LatLng(y, x);
-        }
-      }
-    }
-    return null;
-  }
-
-  /// 좌표 -> 주소 (카카오 Local REST: coord2address)
-  Future<void> _reverseGeocode(LatLng pos) async {
-    final url = Uri.https(
-      'dapi.kakao.com',
-      '/v2/local/geo/coord2address.json',
-      {
-        'x': pos.longitude.toString(),
-        'y': pos.latitude.toString(),
-      },
-    );
-
-    final resp = await http.get(
-      url,
-      headers: {'Authorization': 'KakaoAK $kakaoRestApiKey'},
-    );
-
-    if (resp.statusCode == 200) {
-      final data = json.decode(resp.body) as Map<String, dynamic>;
-      final docs = (data['documents'] as List?) ?? [];
-      if (docs.isNotEmpty) {
-        final road = docs.first['road_address'];
-        final addr = docs.first['address'];
-        final text = road != null
-            ? (road['address_name'] ?? '')
-            : (addr != null ? (addr['address_name'] ?? '') : '');
-        if (text.isNotEmpty && mounted) {
-          setState(() => _address = text);
-        }
-      }
-    }
-  }
-
-  /// 다음 주소검색 팝업 → 결과(주소)로 좌표 구해서 이동
-  Future<void> _openAddressSearch() async {
-    final result = await Navigator.push<Kpostal>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => KpostalView(
-          // 구버전 호환: callback으로 pop
-          callback: (Kpostal res) => Navigator.pop(context, res),
-          useLocalServer: false, // 기본값 사용
+    if (hasPermission == PermissionStatus.granted && serviceEnabled) {
+      final locData = await _location.getLocation();
+      _mapController.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(locData.latitude!, locData.longitude!),
+          16.5,
         ),
-      ),
-    );
-
-    if (result != null) {
-      setState(() => _address = result.address);
-
-      final pos = await _geocodeAddress(result.address);
-      if (pos != null) {
-        await _moveCamera(pos, level: 3);
-        setState(() => _center = pos);
-        await _updateCircle();
-      }
+      );
     }
   }
 
-  /// 카메라 정지 시: 중심좌표/원/주소 갱신
-  void _handleCameraIdle(LatLng latLng, int level) {
-    setState(() => _center = latLng);
-    _updateCircle(); // fire-and-forget
-    _reverseGeocode(latLng); // fire-and-forget
-  }
+  bool _isInSafeZone = false; // 현재 안전지대 안에 있는지 여부
 
-  /// 원(반지름) 갱신
-  Future<void> _updateCircle() async {
-    final circle = Circle(
-      circleId: 'safe_zone',
-      center: _center,
-      radius: _circleRadiusMeters, // meters (반지름)
-      // 일부 버전은 Color 미지원 → hex + opacity 사용
-      strokeColor: const Color.fromARGB(255, 255, 0, 0),
-      strokeWidth: 2,
-      strokeOpacity: 1,
-      fillColor: const Color.fromARGB(255, 0, 47, 255),
-      fillOpacity: 0.25,
-      zIndex: 1,
-    );
+void _listenToLocationChanges() {
+  _location.onLocationChanged.listen((locData) {
+    if (_center == null) return; // 아직 안전지대 설정 안 했으면 무시
 
-    if (_circleAdded) {
-      try {
-        await _mapController.clearCircle(circleIds: ['safe_zone']);
-      } catch (_) {}
+    final currentPos = LatLng(locData.latitude!, locData.longitude!);
+    final distance = _calculateDistance(_center!, currentPos);
+
+    if (distance <= _radius && !_isInSafeZone) {
+      _isInSafeZone = true;
+      print("🛑 안전지대 진입 → 마이크 정지");
+      TriggerListener.instance.stopListening(); // ✅ 마이크 정지
+    } else if (distance > _radius && _isInSafeZone) {
+      _isInSafeZone = false;
+      print("✅ 안전지대 벗어남 → 마이크 재개");
+      TriggerListener.instance.startListening(); // ✅ 마이크 재시작
     }
+  });
+}
 
-    await _mapController.addCircle(circles: [circle]);
-    _circleAdded = true;
+  double getZoomFromRadius(double radius) {
+    if (radius <= 20) return 18.5;
+    if (radius <= 50) return 17.5;
+    if (radius <= 100) return 16.5;
+    if (radius <= 200) return 15.5;
+    return 14;
   }
 
-  Future<void> _selectDiameter(double d) async {
-    setState(() => _selectedDiameter = d);
-    await _updateCircle();
+  void _selectRadius(double value) {
+    setState(() {
+      _radius = value;
+    });
+    if (_center != null) {
+      _mapController.animateCamera(
+        CameraUpdate.newLatLngZoom(_center!, getZoomFromRadius(value)),
+      );
+    }
+  }
+
+  void _onMapTap(LatLng tappedPoint) {
+    if (!_isEditing) return; // ✅ 편집 모드 아닐 때는 무시
+    setState(() {
+      _center = tappedPoint;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 8,
-        title: GestureDetector(
-          onTap: _openAddressSearch,
-          child: Container(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            alignment: Alignment.centerLeft,
-            child: Row(
-              children: [
-                const Icon(Icons.search, size: 20, color: Colors.black54),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _address,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.black87, fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+  appBar: AppBar(
+    backgroundColor: const Color.fromARGB(255, 239, 243, 255),
+    centerTitle: true,
+    elevation: 0, // ✅ 그림자 제거
+    title: const Text(
+      '안전지대 설정',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 18,
+        color: Colors.black,
       ),
+    ),
+    actions: [
+      Switch(
+        value: _isEditing,
+        activeColor: const Color(0xFF5C7CFA), // ✅ 포인트 컬러 통일
+        onChanged: (val) {
+          setState(() {
+            _isEditing = val;
+          });
+        },
+      ),
+    ],
+  ),
       body: Stack(
         children: [
-          KakaoMap(
-            center: _center,
-            currentLevel: 3,
-            onMapCreated: (c) async {
-              _mapController = c;
-              _mapReady = true;
-              await _updateCircle();
-              await _reverseGeocode(_center);
+          GoogleMap(
+            initialCameraPosition: const CameraPosition(
+              target: LatLng(36.6283, 127.4581),
+              zoom: 15.0,
+            ),
+            onMapCreated: (controller) {
+              _mapController = controller;
             },
-            onCameraIdle: _handleCameraIdle, // (LatLng, int)
+            onTap: _onMapTap,
+            markers: _center != null
+                ? {
+                    Marker(
+                      markerId: const MarkerId("center_marker"),
+                      position: _center!,
+                      draggable: true,
+                      onDragEnd: (newPosition) {
+                        setState(() {
+                          _center = newPosition;
+                        });
+                      },
+                      icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueRed,
+                      ),
+                    ),
+                  }
+                : {},
+            circles: _center != null
+                ? {
+                    Circle(
+                      circleId: const CircleId("safe_zone"),
+                      center: _center!,
+                      radius: _radius,
+                      fillColor: Colors.red.withOpacity(0.3),
+                      strokeColor: Colors.red,
+                      strokeWidth: 2,
+                    ),
+                  }
+                : {},
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
           ),
 
-          // 중앙 고정 핀
-          if (_mapReady)
-            const IgnorePointer(
-              child: Center(
-                child: Icon(Icons.place, size: 38, color: Colors.red),
-              ),
-            ),
-
-          // 하단 직경 선택
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 24,
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _diameterOptions.map((d) {
-                    final selected = _selectedDiameter == d;
-                    return GestureDetector(
-                      onTap: () => _selectDiameter(d),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 160),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected ? Colors.red : Colors.white,
-                          border: Border.all(color: Colors.black87),
-                          borderRadius: BorderRadius.circular(22),
-                          boxShadow: const [
-                            BoxShadow(
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
-                              color: Colors.black12,
-                            )
-                          ],
-                        ),
-                        child: Text(
-                          '${d.toInt()}m',
-                          style: TextStyle(
-                            color: selected ? Colors.white : Colors.black87,
-                            fontWeight: FontWeight.w600,
+          // ✅ 반경 조절 UI (편집 모드일 때만 표시)
+          if (_isEditing)
+            Positioned(
+              bottom: 40,
+              left: 20,
+              right: 20,
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: _radiusOptions.map((value) {
+                      final bool isSelected = _radius == value;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(30),
+                        onTap: () => _selectRadius(value),
+                        child: Container(
+                          padding: const EdgeInsets.all(6), // ✅ 터치 범위 약 1.4배 확장 (기존 대비)
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: isSelected ? 24 : 14, // 🎨 기존 디자인 그대로 유지
+                            height: isSelected ? 24 : 14,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color.fromARGB(255, 255, 34, 0)
+                                  : Colors.grey[600],
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.black,
+                                width: 1.5,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '현재 원 반지름: ${_circleRadiusMeters.toStringAsFixed(0)} m (직경 ${_selectedDiameter.toInt()} m)',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ],
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: const [
+                      Text("20m", style: TextStyle(fontSize: 12)),
+                      Text("50m", style: TextStyle(fontSize: 12)),
+                      Text("100m", style: TextStyle(fontSize: 12)),
+                      Text("200m", style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
   }
+}
+//거리 계산 함수
+double _calculateDistance(LatLng p1, LatLng p2) {
+  const R = 6371000; // 지구 반지름(m)
+  final dLat = (p2.latitude - p1.latitude) * (pi / 180);
+  final dLon = (p2.longitude - p1.longitude) * (pi / 180);
+  final a = sin(dLat / 2) * sin(dLat / 2) +
+      cos(p1.latitude * (pi / 180)) *
+      cos(p2.latitude * (pi / 180)) *
+      sin(dLon / 2) * sin(dLon / 2);
+  final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+  return R * c; // 거리(m)
 }

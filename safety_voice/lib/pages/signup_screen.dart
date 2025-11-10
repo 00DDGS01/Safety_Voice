@@ -36,7 +36,8 @@ class _SignupScreenState extends State<SignupScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-            'http://192.168.0.102:8080/api/auth/signup'), // Spring Boot 서버
+            'https://safetyvoice.jp.ngrok.io/api/auth/signup'),
+             // Spring Boot 서버,/api/auth/signup
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'nickname': _nicknameController.text,

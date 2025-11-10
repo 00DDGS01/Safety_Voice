@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:safety_voice/pages/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:safety_voice/services/api_client.dart';
+import 'package:safety_voice/pages/signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -287,24 +288,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
 
                 // 회원가입 텍스트
-                RichText(
-                  text: const TextSpan(
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                    children: [
-                      TextSpan(text: '계정이 없으신가요? '),
-                      TextSpan(
-                        text: '회원가입하기',
-                        style: TextStyle(
-                          color: Color(0xFF577BE5), // 파란색
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                TextButton(
+  onPressed: () {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const SignupScreen(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  },
+  style: TextButton.styleFrom(
+    padding: EdgeInsets.zero,
+    foregroundColor: const Color(0xFF577BE5), // 파란색
+  ),
+  child: const Text(
+    '계정이 없으신가요? 회원가입하기',
+    style: TextStyle(
+      fontSize: 12,
+      color: Color(0xFF577BE5),
+      decoration: TextDecoration.underline,
+    ),
+  ),
+),
 
                 // 에러 메시지
                 if (_errorMessage != null) ...[
