@@ -504,7 +504,7 @@ class _CaseFileState extends State<CaseFile> {
                                   GestureDetector(
                                     onTap: () async {
                                       final result = await Navigator.push<
-                                          Map<String, String>>(
+                                          Map<String, dynamic>>(
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) => CaseFileSelectPage(
@@ -513,19 +513,26 @@ class _CaseFileState extends State<CaseFile> {
                                           ),
                                         ),
                                       );
-                                      if (result != null) {
-                                        final destTitle = result['title']!;
-                                        final destPath = result['path']!;
-                                        final bytes = (f['bytes'] as int?) ??
-                                            int.tryParse(
-                                                result['bytes'] ?? '0') ??
-                                            0;
 
-                                        setState(() => _caseFiles.removeAt(i));
-                                        if (_playing == f['path'])
-                                          _playing = null;
+                                      // ✅ 이동 완료 여부 확인
+                                      if (result != null &&
+                                          result['moved'] == true) {
+                                        final destTitle =
+                                            result['title'] as String;
+                                        final destPath =
+                                            result['toPath'] as String;
+                                        final bytes = (f['bytes'] as int?) ?? 0;
 
+                                        // ✅ 현재 화면 리스트 갱신
+                                        setState(() {
+                                          _caseFiles.removeAt(i);
+                                          if (_playing == f['path'])
+                                            _playing = null;
+                                        });
+
+                                        // ✅ data.json 업데이트
                                         final list = await _readDataJson();
+
                                         // source 감소
                                         final sIdx = list.indexWhere(
                                             (e) => (e['title'] ?? '') == title);
@@ -545,6 +552,7 @@ class _CaseFileState extends State<CaseFile> {
                                           item['size'] = _formatBytes(newBytes);
                                           list[sIdx] = item;
                                         }
+
                                         // dest 증가
                                         final dIdx = list.indexWhere((e) =>
                                             (e['title'] ?? '') == destTitle);
@@ -571,16 +579,24 @@ class _CaseFileState extends State<CaseFile> {
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(
                                           SnackBar(
-                                              content: Text(
-                                                  '‘$destTitle’로 이동 완료: ${p.basename(destPath)}')),
+                                            content: Text(
+                                                '‘$destTitle’로 이동 완료: ${p.basename(destPath)}'),
+                                          ),
                                         );
+
+                                        // ✅ 혹시 파일시스템 반영 느릴 경우 보완용
+                                        await Future.delayed(
+                                            const Duration(milliseconds: 300));
+                                        await _loadCaseFiles();
                                       }
                                     },
                                     child: Image.asset(
-                                        'assets/images/transfer.png',
-                                        width: 24,
-                                        height: 24),
+                                      'assets/images/transfer.png',
+                                      width: 24,
+                                      height: 24,
+                                    ),
                                   ),
+
                                   const SizedBox(width: 14),
 
                                   // 수정 (필요 없으면 삭제하거나 GPT 아이콘만 넣기)

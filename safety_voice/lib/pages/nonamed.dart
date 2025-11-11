@@ -305,7 +305,8 @@ class _NonamedState extends State<Nonamed> {
                             GestureDetector(
                               onTap: () async {
                                 final result =
-                                    await Navigator.push<Map<String, String>>(
+                                    await Navigator.push<Map<String, dynamic>>(
+                                  // ✅ dynamic으로 수정
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => CaseFileSelectPage(
@@ -313,13 +314,17 @@ class _NonamedState extends State<Nonamed> {
                                   ),
                                 );
 
-                                if (result != null) {
-                                  final movedTitle = result['title']!;
-                                  final movedPath = result['path']!;
-                                  final movedBytes =
-                                      int.tryParse(result['bytes'] ?? '0') ?? 0;
+                                if (result != null && result['moved'] == true) {
+                                  // ✅ moved 체크 수정
+                                  final movedTitle = result['title'] as String;
+                                  final movedPath = result['toPath'] as String;
 
-                                  // 1) data.json 업데이트
+                                  // movedBytes는 없을 수도 있음 → 기본값 처리
+                                  final movedBytes = result['bytes'] is String
+                                      ? int.tryParse(result['bytes']) ?? 0
+                                      : (result['bytes'] as int?) ?? 0;
+
+                                  // ✅ data.json 업데이트 부분 그대로 유지
                                   final list = await _readDataJson();
                                   final idx = list.indexWhere(
                                       (e) => (e['title'] ?? '') == movedTitle);
@@ -342,7 +347,7 @@ class _NonamedState extends State<Nonamed> {
                                     await _writeDataJson(list);
                                   }
 
-                                  // 2) recording_list.txt에서도 제거
+                                  // ✅ recording_list.txt에서 제거
                                   final dir =
                                       await getApplicationDocumentsDirectory();
                                   final listFile =
@@ -354,7 +359,7 @@ class _NonamedState extends State<Nonamed> {
                                         .writeAsString(lines.join('\n'));
                                   }
 
-                                  // 3) Nonamed 리스트에서 제거 + 스낵바
+                                  // ✅ Nonamed 리스트 즉시 반영
                                   if (!mounted) return;
                                   setState(() {
                                     audioFiles.remove(file);

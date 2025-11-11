@@ -231,13 +231,16 @@ class _SetupScreenState extends State<SetupScreen> {
                           SizedBox(height: 12),
                           _buildEditNotiWordSection(),
                           SizedBox(height: 40),
+
                           // 설정값 수정하기 버튼
-                          Container(
+                          SizedBox(
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
                               onPressed: () async {
-                                // ✅ 안전지대 이름(=위치명) 비어있는 경우
+                                if (!mounted) return;
+
+                                // 1) 입력 검증 (유효하지 않으면 다이얼로그 띄우지 않음)
                                 if (zone1LocationController.text
                                     .trim()
                                     .isEmpty) {
@@ -248,7 +251,6 @@ class _SetupScreenState extends State<SetupScreen> {
                                   return;
                                 }
 
-                                // ✅ 지도에서 선택하지 않은 경우
                                 final currentZone = safeZones[0];
                                 if (currentZone["latitude"] == null ||
                                     currentZone["longitude"] == null ||
@@ -261,7 +263,49 @@ class _SetupScreenState extends State<SetupScreen> {
                                   return;
                                 }
 
-                                // ✅ 서버에 보낼 body 생성 (safeTimes 없어도 OK)
+                                // 2) 확인 다이얼로그
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    content: const Text('정말로 설정값을 수정하시겠습니까?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: const Color.fromARGB(
+                                              255, 65, 65, 65),
+                                        ),
+                                        child: const Text('취소'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: const Color.fromARGB(
+                                              255, 65, 65, 65),
+                                        ),
+                                        child: const Text('수정'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirmed != true) return; // 취소 시 종료
+
+                                // ✅ 로딩 인디케이터 표시
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (_) => const Center(
+                                      child: CircularProgressIndicator()),
+                                );
+
+                                // 3) 서버에 보낼 body 구성
                                 final body = [
                                   {
                                     "safeZoneName":
@@ -275,54 +319,12 @@ class _SetupScreenState extends State<SetupScreen> {
                                   }
                                 ];
 
-                                print("📤 SafeZone PUT Body: $body");
-
-                                // ✅ 로딩 인디케이터 표시
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (_) => const Center(
-                                      child: CircularProgressIndicator()),
-                                );
-
-                                /*try {
-                                  final result = await ApiClient.put(
-                                      "/api/safe-zones", body);
-
-                                  Navigator.pop(context);
-
-                                  if (result["success"] == true) {
-                                    // ✅ PUT 성공 후 서버에서 최신값 다시 불러오기
-                                    await ApiClient.fetchSafeZones();
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('✅ 안전지대 위치가 저장되었습니다!')),
-                                    );
-                                    setState(() => isEditing = false);
-                                  } else {
-                                    print("❌ 서버 오류: ${result["error"]}");
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('서버 오류가 발생했습니다.')),
-                                    );
-                                  }
-                                } catch (e) {
-                                  Navigator.pop(context);
-                                  print("🚨 네트워크 예외: $e");
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content:
-                                          Text('네트워크 오류가 발생했습니다. 다시 시도해주세요.'),
-                                    ),
-                                  );
-                                }
-                                */
                                 try {
                                   final result = await ApiClient.put(
                                       "/api/safe-zones", body);
 
-                                  Navigator.pop(context); // ✅ 로딩창 닫기
+                                  if (mounted)
+                                    Navigator.pop(context); // ✅ 로딩창 닫기
 
                                   if (result["success"] == true) {
                                     // SharedPreferences에 안전지대 정보 동기화
@@ -354,17 +356,21 @@ class _SetupScreenState extends State<SetupScreen> {
                                         "💾 SharedPreferences에 안전지대 정보 저장 완료");
 
                                     // ✅ 추가: UI 즉시 반영
-                                    setState(() {
-                                      safeZones[0] = currentZone;
-                                      zone1LocationController.text =
-                                          currentZone["safeZoneName"];
-                                    });
+                                    if (mounted) {
+                                      setState(() {
+                                        safeZones[0] = currentZone;
+                                        zone1LocationController.text =
+                                            currentZone["safeZoneName"];
+                                        isEditing = false;
+                                      });
 
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('✅ 안전지대 위치가 저장되었습니다!')),
-                                    );
-                                    setState(() => isEditing = false);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content:
+                                                Text('✅ 안전지대 위치가 저장되었습니다!')),
+                                      );
+                                    }
                                   } else {
                                     final status = result["statusCode"];
                                     final error = result["error"];
@@ -377,13 +383,16 @@ class _SetupScreenState extends State<SetupScreen> {
                                     );
                                   }
                                 } catch (e) {
-                                  Navigator.pop(context); // ✅ 로딩창 닫기
-                                  print("🚨 네트워크 예외: $e");
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            '네트워크 오류가 발생했습니다. 다시 시도해주세요.')),
-                                  );
+                                  if (mounted) {
+                                    Navigator.pop(context); // ✅ 로딩창 닫기
+                                    print("🚨 네트워크 예외: $e");
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content:
+                                            Text('네트워크 오류가 발생했습니다. 다시 시도해주세요.'),
+                                      ),
+                                    );
+                                  }
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -401,7 +410,7 @@ class _SetupScreenState extends State<SetupScreen> {
                                 ),
                               ),
                             ),
-                          ),
+                          )
                         ],
                         SizedBox(height: 120),
                       ],
