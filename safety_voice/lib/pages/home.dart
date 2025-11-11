@@ -38,6 +38,92 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  // === 다중 선택 상태 ===
+  bool _selectionMode = false;
+  final Set<String> _selectedTitles = {};
+
+  void _enterSelection(String title) {
+    setState(() {
+      _selectionMode = true;
+      _selectedTitles
+        ..clear()
+        ..add(title);
+    });
+  }
+
+  void _toggleSelect(String title) {
+    setState(() {
+      if (_selectedTitles.remove(title)) {
+        if (_selectedTitles.isEmpty) _selectionMode = false;
+      } else {
+        _selectedTitles.add(title);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectionMode = false;
+      _selectedTitles.clear();
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      _selectionMode = true;
+      _selectedTitles
+        ..clear()
+        ..addAll(fileData
+            .map<String>((e) => (e['title'] ?? '').toString())
+            .where((t) => t.isNotEmpty));
+    });
+  }
+
+  Future<void> _deleteSelected() async {
+    if (_selectedTitles.isEmpty) return;
+    final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text('선택한 ${_selectedTitles.length}개 삭제할까요?'),
+            content: const Text('폴더와 녹음 파일까지 영구 삭제됩니다.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('삭제'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!ok) return;
+
+    // 폴더 삭제
+    for (final title in _selectedTitles) {
+      final dir = await _caseDir(title);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
+    }
+    // 목록/파일 반영
+    setState(() {
+      fileData.removeWhere(
+        (e) => _selectedTitles.contains((e['title'] ?? '').toString()),
+      );
+    });
+    await _saveFileData();
+    await _reconcileAllCases();
+    await _rebuildCalendarFromLocal();
+    _clearSelection();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('삭제 완료: ${_selectedTitles.length}개')),
+      );
+    }
+  }
+
   bool isCalendarMode = true;
 
   // 연/월 드롭다운 상태 (일은 제거)
@@ -122,31 +208,110 @@ class _HomeState extends State<Home> {
 
   Future<File> _getLocalFile() async {
     final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/$_localFileName');
+    return File(p.join(dir.path, _localFileName)); // 더 안전: p.join
   }
+
+  // 처음 한번만 assets → 로컬 복사
+  Future<void> _ensureLocalDataJson() async {
+    final f = await _getLocalFile();
+    if (!await f.exists()) {
+      final bundled = await rootBundle.loadString('assets/data/data.json');
+      await f.writeAsString(bundled);
+    }
+  }
+
+  Future<void> _loadJsonData() async {
+    final f = await _getLocalFile();
+    if (!await f.exists()) {
+      await _ensureLocalDataJson();
+    }
+    final raw = await f.readAsString();
+    final data = (raw.trim().isEmpty) ? [] : json.decode(raw);
+    setState(() => fileData = (data as List));
+  }
+
+
 
   Future<void> _saveFileData() async {
     final f = await _getLocalFile();
     await f.writeAsString(jsonEncode(fileData));
   }
 
+  Future<bool> _confirmDelete(BuildContext context, String title) async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: true,
+          builder: (ctx) => AlertDialog(
+            title: const Text('삭제할까요?'),
+            content: Text('“$title” 사건과 그 안의 녹음 파일/폴더를 모두 삭제합니다.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('삭제'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _deleteCaseAt(int index) async {
+    try {
+      final Map<String, dynamic> item =
+          Map<String, dynamic>.from(fileData[index] as Map);
+      final String title = (item['title'] ?? '').toString();
+
+      // 1) 폴더 삭제 (오디오 파일 포함)
+      final dir = await _caseDir(title);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
+
+      // 2) 메모리 목록에서 제거
+      setState(() {
+        fileData.removeAt(index);
+      });
+
+      // 3) data.json 반영
+      await _saveFileData();
+
+      // 4) 캘린더/카운트 재계산
+      await _reconcileAllCases();
+      await _rebuildCalendarFromLocal();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('“$title”을(를) 삭제했습니다.')),
+        );
+      }
+    } catch (e) {
+      debugPrint('deleteCase error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('삭제 중 오류가 발생했습니다.')),
+        );
+      }
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
     _year = _today.year;
     _month = _today.month;
-    _loadJsonData().then((_) async {
+
+    _ensureLocalDataJson().then((_) async {
+      await _loadJsonData();          // ✅ 로컬만 읽음
       await _reconcileAllCases();
       await _rebuildCalendarFromLocal();
     });
-    //_loadRecordBadges();
-  }
-
-  Future<void> _loadJsonData() async {
-    final String response =
-        await rootBundle.loadString('assets/data/data.json');
-    final data = json.decode(response);
-    setState(() => fileData = data);
+    _loadRecordBadges();
   }
 
   Future<void> _loadRecordBadges() async {
@@ -202,24 +367,45 @@ class _HomeState extends State<Home> {
           ),
         ),
         title: Text(
-          isCalendarMode ? '달력' : '파일 목록',
-          style: const TextStyle(
-              color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          _selectionMode
+              ? '${_selectedTitles.length}개 선택'
+              : (isCalendarMode ? '달력' : '파일 목록'),
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        actions: [
-          _topModeButton(
-            icon: Icons.calendar_today,
-            selected: isCalendarMode,
-            onTap: () => setState(() => isCalendarMode = true),
-          ),
-          const SizedBox(width: 8),
-          _topModeButton(
-            icon: Icons.menu,
-            selected: !isCalendarMode,
-            onTap: () => setState(() => isCalendarMode = false),
-          ),
-          const SizedBox(width: 12),
-        ],
+
+        actions: _selectionMode
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.select_all),
+                  tooltip: '모두 선택',
+                  onPressed: _selectAll,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  tooltip: '삭제',
+                  onPressed: _deleteSelected,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: '선택 해제',
+                  onPressed: _clearSelection,
+                ),
+              ]
+            : [
+                _topModeButton(
+                  icon: Icons.calendar_today,
+                  selected: isCalendarMode,
+                  onTap: () => setState(() => isCalendarMode = true),
+                ),
+                const SizedBox(width: 8),
+                _topModeButton(
+                  icon: Icons.menu,
+                  selected: !isCalendarMode,
+                  onTap: () => setState(() => isCalendarMode = false),
+                ),
+                const SizedBox(width: 12),
+              ],
+
       ),
       body: isCalendarMode ? _buildCalendarPopup() : _buildListMode(),
       bottomNavigationBar: SizedBox(
@@ -343,39 +529,53 @@ class _HomeState extends State<Home> {
                       ),
                     )
                   : GestureDetector(
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) => CaseFile(
-                              data: fileData[i - 1],
-                              onUpdate: (updated) async {
-                                setState(() {
-                                  fileData[i - 1] = updated;
-                                });
-                                await _saveFileData();
-                              },
-                            ),
-                            transitionDuration: Duration.zero,
-                            reverseTransitionDuration: Duration.zero,
-                          ),
-                        );
+                    onTap: () async {
+                      final title = (fileData[i - 1]['title'] ?? '').toString();
+                      if (_selectionMode) {
+                        _toggleSelect(title);
+                        return;
+                      }
 
-                        await _reconcileAllCases();
-                        await _rebuildCalendarFromLocal(); // ★ 달력 갱신
-                        if (mounted) setState(() {}); // (옵션) 화면 리프레시
-                      },
-                      child: _buildFileBox(
-                        title: fileData[i - 1]['title'],
-                        recent: fileData[i - 1]['recent'],
-                        count: fileData[i - 1]['count'],
-                        size: fileData[i - 1]['size'],
-                        badgeColor: Color(int.parse(fileData[i - 1]['color']
-                            .replaceFirst('#', '0xFF'))),
-                        textColor: Color(int.parse(fileData[i - 1]['textColor']
-                            .replaceFirst('#', '0xFF'))),
-                      ),
-                    )
+                      await Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => CaseFile(
+                            data: fileData[i - 1],
+                            onUpdate: (updated) async {
+                              setState(() {
+                                fileData[i - 1] = updated;
+                              });
+                              await _saveFileData();
+                            },
+                          ),
+                          transitionDuration: Duration.zero,
+                          reverseTransitionDuration: Duration.zero,
+                        ),
+                      );
+
+                      await _reconcileAllCases();
+                      await _rebuildCalendarFromLocal();
+                      if (mounted) setState(() {});
+                    },
+
+                    onLongPress: () {
+                      final title = (fileData[i - 1]['title'] ?? '').toString();
+                      _enterSelection(title);
+                    },
+
+                    child: _buildFileBox(
+                      title: fileData[i - 1]['title'],
+                      recent: fileData[i - 1]['recent'],
+                      count: fileData[i - 1]['count'],
+                      size: fileData[i - 1]['size'],
+                      badgeColor: Color(int.parse(fileData[i - 1]['color'].replaceFirst('#', '0xFF'))),
+                      textColor: Color(int.parse(fileData[i - 1]['textColor'].replaceFirst('#', '0xFF'))),
+                      // ⬇️ 추가
+                      selected: _selectedTitles.contains((fileData[i - 1]['title'] ?? '').toString()),
+                      showSelector: _selectionMode,
+                    ),
+                  )
+
           ],
         ),
         Positioned(
@@ -596,15 +796,8 @@ class _HomeState extends State<Home> {
                             onPressed: () async {
                               final title = titleCtrl.text.trim();
                               final description = descCtrl.text.trim();
-
-                              if (title.isEmpty) {
-                                _showSheetSnack(ctx, '제목을 입력하세요');
-                                return;
-                              }
-                              if (_isTitleDuplicate(title)) {
-                                _showSheetSnack(ctx, '이미 존재하는 파일 이름입니다');
-                                return;
-                              }
+                              if (title.isEmpty) { _showSheetSnack(ctx, '제목을 입력하세요'); return; }
+                              if (_isTitleDuplicate(title)) { _showSheetSnack(ctx, '이미 존재하는 파일 이름입니다'); return; }
 
                               final textColor = _mixWithBlack(selected, 0.6);
                               final now = DateTime.now();
@@ -618,11 +811,24 @@ class _HomeState extends State<Home> {
                                 "size": "0GB",
                               };
 
+                              // 1) 리스트에 추가하고
                               setState(() => fileData.insert(0, newItem));
+                              // 2) 로컬 data.json에 저장
                               await _saveFileData();
+
+                              // 3) 실제 폴더 생성
+                              final dir = await _caseDir(title);
+                              if (!await dir.exists()) {
+                                await dir.create(recursive: true);
+                              }
+
+                              // 4) 폴더 스캔/달력 갱신 (선택적이지만 UX 좋아짐)
+                              await _reconcileAllCases();
+                              await _rebuildCalendarFromLocal();
 
                               if (mounted) Navigator.pop(ctx, true);
                             },
+
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               foregroundColor: Colors.black87,
@@ -660,54 +866,93 @@ class _HomeState extends State<Home> {
     required String size,
     Color badgeColor = Colors.white,
     Color textColor = Colors.black,
+    bool selected = false,      // ✅ 추가
+    bool showSelector = false,  // ✅ 추가
   }) {
-    return Container(
-      height: 110,
-      margin: const EdgeInsets.only(bottom: 16.0),
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 255, 255, 255),
-        borderRadius: BorderRadius.circular(20.0),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
+    final Color selectedBg = const Color(0xFFFFE4E8);
+
+    return Stack(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 110,
+          margin: const EdgeInsets.only(bottom: 16.0),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: selected ? selectedBg : const Color(0xFFFFFFFF), // ✅ 선택 시 분홍 배경
+            borderRadius: BorderRadius.circular(20.0),
+            boxShadow: [
+              if (selected)
+                BoxShadow(
+                  color: Colors.pink.withOpacity(0.25),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                    color: badgeColor, borderRadius: BorderRadius.circular(6)),
-                child: Text(title,
-                    style: TextStyle(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      title,
+                      style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16)),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text("최근 추가일 : $recent",
+                      style: const TextStyle(color: Colors.black45, fontSize: 12)),
+                ],
               ),
-              const SizedBox(height: 10),
-              Text("최근 추가일 : $recent",
-                  style: const TextStyle(color: Colors.black45, fontSize: 12)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text("파일 개수 : ${count}개",
+                      style: const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
+                  const SizedBox(height: 8),
+                  Text("전체 용량 : $size",
+                      style: const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
+                ],
+              ),
             ],
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text("파일 개수 : ${count}개",
-                  style:
-                      const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
-              const SizedBox(height: 8),
-              Text("전체 용량 : $size",
-                  style:
-                      const TextStyle(color: Color(0xFF577BE5), fontSize: 12)),
-            ],
+        ),
+
+        // 선택 모드일 때 체크점
+        if (showSelector)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              decoration: BoxDecoration(
+                color: selected ? Colors.pink : Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.pink),
+              ),
+              width: 22,
+              height: 22,
+              child: selected
+                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  : const SizedBox.shrink(),
+            ),
           ),
-        ],
-      ),
+      ],
     );
   }
+
 
   /// =================== 달력 뷰 ===================
   Widget _buildCalendarPopup() {
@@ -862,48 +1107,49 @@ class _HomeState extends State<Home> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // 날짜 네모
+                                  // 날짜 네모 (그대로)
                                   Container(
                                     margin: const EdgeInsets.only(top: 1.0),
                                     width: 23.0,
                                     height: 23.0,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: isToday
-                                          ? const Color(0xFF577BE5)
-                                          : Colors.transparent,
+                                      color: isToday ? const Color(0xFF577BE5) : Colors.transparent,
                                       borderRadius: BorderRadius.circular(4.0),
                                     ),
                                     child: Text(
                                       valid ? calendarDays[dateIndex] : '',
                                       style: TextStyle(
                                         fontSize: 12.0,
-                                        color: isToday
-                                            ? Colors.white
-                                            : Colors.black,
-                                        fontWeight: isToday
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
+                                        color: isToday ? Colors.white : Colors.black,
+                                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                                       ),
                                     ),
                                   ),
+
                                   const SizedBox(height: 6),
 
-                                  // 날짜별 미니 뱃지들
-                                  for (final b in items.take(4)) _miniBadge(b),
-                                  if (items.length > 4)
-                                    const Padding(
-                                      padding: EdgeInsets.only(top: 2),
-                                      child: Text('…',
-                                          style: TextStyle(
-                                              color: Colors.black45,
-                                              fontSize: 11)),
+                                  // ✅ 배지 스크롤 영역
+                                  if (items.isEmpty)
+                                    const SizedBox.shrink()
+                                  else
+                                    Expanded(
+                                      child: ScrollConfiguration(
+                                        behavior: _NoGlowScrollBehavior(),
+                                        child: ListView.builder(
+                                          padding: EdgeInsets.zero,
+                                          physics: const ClampingScrollPhysics(),
+                                          itemCount: items.length,
+                                          itemBuilder: (context, k) => _miniBadge(items[k]),
+                                        ),
+                                      ),
                                     ),
                                 ],
                               ),
-                            ),
+
                           ),
                         ),
+                      ),
                       );
                     }),
                   ),
@@ -926,7 +1172,7 @@ class _HomeState extends State<Home> {
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration:
-          BoxDecoration(color: b.bg, borderRadius: BorderRadius.circular(6)),
+          BoxDecoration(color: b.bg, borderRadius: BorderRadius.circular(3)),
       child: Text(
         b.title, // "1310  4분"
         style: TextStyle(
@@ -1163,6 +1409,18 @@ class RecordBadge {
     );
   }
 }
+
+class _NoGlowScrollBehavior extends ScrollBehavior {
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
+}
+
 
 String _dayKey(int y, int m, int d) =>
     '${y.toString().padLeft(4, '0')}-${m.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
