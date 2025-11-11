@@ -70,8 +70,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) {
           // 테스트용으로 Splash 대신 Home으로
-          //return const SplashScreen();
-          return const Home();
+          return const SplashScreen();
+          //return const Home();
         },
       },
     );
