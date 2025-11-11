@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
@@ -5,6 +7,7 @@ import 'package:safety_voice/pages/home.dart';
 import 'package:safety_voice/pages/map_screen.dart';
 import 'package:safety_voice/pages/word_setting.dart';
 import 'package:safety_voice/services/api_client.dart';
+import 'package:http/http.dart';
 
 import 'dart:async';
 import 'dart:math';
@@ -927,6 +930,20 @@ class _SetupScreenState extends State<SetupScreen> {
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () async {
+                  // SharedPreferences or 서버에서 safeTimes 불러오기
+                  final prefs = await SharedPreferences.getInstance();
+                  final saved = prefs.getString('safeZoneTimes');
+                  List<Map<String, dynamic>>? safeTimes;
+
+                  if (saved != null) {
+                    safeTimes =
+                        List<Map<String, dynamic>>.from(jsonDecode(saved));
+                    print("💾 불러온 safeTimes: $safeTimes");
+                  } else {
+                    print("ℹ️ 저장된 safeTimes 없음 — 새로 작성 모드");
+                  }
+
+                  // safeTimes 전달
                   final result =
                       await showModalBottomSheet<List<Map<String, dynamic>>>(
                     context: context,
@@ -934,9 +951,11 @@ class _SetupScreenState extends State<SetupScreen> {
                     builder: (_) => TimeTableModal(
                       safeZone: safeZone,
                       isEditing: true,
+                      safeTimes: safeTimes,
                     ),
                   );
 
+                  // 모달 닫힌 후 결과 반영
                   if (result != null) {
                     print('✅ ${safeZone} SafeTimes: $result');
                     setState(() {
@@ -1310,11 +1329,13 @@ class _SetupScreenState extends State<SetupScreen> {
 class TimeTableModal extends StatefulWidget {
   final String safeZone; // 안전지대 번호를 저장할 변수
   final bool isEditing;
+  final List<Map<String, dynamic>>? safeTimes;
 
   const TimeTableModal({
     super.key,
     required this.safeZone,
     required this.isEditing,
+    this.safeTimes,
   });
 
   @override
@@ -1325,6 +1346,48 @@ class _TimeTableModalState extends State<TimeTableModal> {
   final Set<String> selected = {};
   final List<String> days = ['일', '월', '화', '수', '목', '금', '토'];
   final List<int> times = List.generate(24, (index) => index + 1);
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 서버에서 받은 safeTimes가 있을 경우 반영
+    if (widget.safeTimes != null && widget.safeTimes!.isNotEmpty) {
+      for (var item in widget.safeTimes!) {
+        final dayIdx = _dayToIndex(item["daysActive"]);
+
+        // "02:00:00" → 2, "05:00:00" → 5
+        final start = int.parse(item["startTime"].toString().split(":")[0]);
+        final end = int.parse(item["endTime"].toString().split(":")[0]);
+
+        for (int hour = start; hour < end; hour++) {
+          selected.add('$hour-$dayIdx');
+        }
+      }
+      print('🟢 서버 safeTimes 반영 완료 (${selected.length}개 셀)');
+    }
+  }
+
+  int _dayToIndex(String day) {
+    switch (day) {
+      case 'SUN':
+        return 0;
+      case 'MON':
+        return 1;
+      case 'TUE':
+        return 2;
+      case 'WED':
+        return 3;
+      case 'THU':
+        return 4;
+      case 'FRI':
+        return 5;
+      case 'SAT':
+        return 6;
+      default:
+        return 0;
+    }
+  }
 
   void toggleCell(int timeIdx, int dayIdx) {
     if (!mounted) return;
