@@ -242,7 +242,15 @@ class _SettingScreenState extends State<SettingScreen> {
 
       if (response.statusCode == 200) {
         debugPrint('✅ 서버에 사용자 설정 저장 완료');
+
+        // ✅ SharedPreferences 갱신
+        await prefs.setString('trigger_word', wordController.text.trim());
+        await prefs.setString(
+            'emergency_trigger_word', emergencyWordController.text.trim());
+
+        // ✅ STT 단어 갱신
         await TriggerListener.instance.refreshWords();
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('설정이 성공적으로 저장되었습니다.')),
