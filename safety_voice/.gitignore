@@ -49,3 +49,4 @@ app.*.map.json
 lib/utils/secrets.dart.secrets.*
 lib/utils/secrets.*.DS_Store
 lib/utils/secrets.dart
+android/app/src/main/AndroidManifest.xml
