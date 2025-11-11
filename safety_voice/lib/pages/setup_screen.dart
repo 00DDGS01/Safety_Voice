@@ -9,6 +9,7 @@ import 'package:safety_voice/services/api_client.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:safety_voice/pages/hint.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // 타임테이블 버튼 추가된 SetupScreen 코드
 class SetupScreen extends StatefulWidget {
@@ -19,6 +20,11 @@ class SetupScreen extends StatefulWidget {
 }
 
 class _SetupScreenState extends State<SetupScreen> {
+  @override
+  void initState() {
+    _loadSafeZoneData();
+  }
+
   bool isEditing = false;
   bool isSafetyEnabled = true; // 초기값 ON
   bool isAlarmEnabled = true; // 초기값 ON
@@ -75,6 +81,34 @@ class _SetupScreenState extends State<SetupScreen> {
         reverseTransitionDuration: Duration.zero,
       ),
     );
+  }
+
+  Future<void> _loadSafeZoneData() async {
+    print("🧭 SetupScreen initState() 실행됨 — 안전지대 불러오기 시작");
+
+    // 1️⃣ 서버에서 최신 데이터 받아 SharedPreferences에 저장
+    await ApiClient.fetchSafeZones();
+
+    // 2️⃣ SharedPreferences에서 꺼내서 UI에 반영
+    final prefs = await SharedPreferences.getInstance();
+    final safeZoneName = prefs.getString('safeZoneName') ?? '';
+    final latitude = prefs.getDouble('safeZoneLatitude');
+    final longitude = prefs.getDouble('safeZoneLongitude');
+    final radius = prefs.getInt('safeZoneRadius');
+
+    print("📥 SharedPreferences 값 로드됨: $safeZoneName / $latitude / $longitude");
+
+    // 3️⃣ controller와 state 업데이트
+    setState(() {
+      zone1LocationController.text = safeZoneName;
+      safeZones[0] = {
+        "safeZoneName": safeZoneName,
+        "latitude": latitude,
+        "longitude": longitude,
+        "radius": radius,
+        "safeTimes": [],
+      };
+    });
   }
 
   @override
@@ -271,6 +305,7 @@ class _SetupScreenState extends State<SetupScreen> {
                                                 await ApiClient.put(
                                                     "/api/safe-zones", body);
 
+
                                             if (!mounted) return;
 
                                             if (response.statusCode == 200 ||
@@ -328,6 +363,115 @@ class _SetupScreenState extends State<SetupScreen> {
                                 // 필요시 confirmed 값(true/false/null) 활용 가능
                                 if (confirmed == true) {
                                   // 저장 성공 후 추가 작업이 있다면 여기에
+
+                                // ✅ 로딩 인디케이터 표시
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (_) => const Center(
+                                      child: CircularProgressIndicator()),
+                                );
+
+                                /*try {
+                                  final result = await ApiClient.put(
+                                      "/api/safe-zones", body);
+
+                                  Navigator.pop(context);
+
+                                  if (result["success"] == true) {
+                                    // ✅ PUT 성공 후 서버에서 최신값 다시 불러오기
+                                    await ApiClient.fetchSafeZones();
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('✅ 안전지대 위치가 저장되었습니다!')),
+                                    );
+                                    setState(() => isEditing = false);
+                                  } else {
+                                    print("❌ 서버 오류: ${result["error"]}");
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('서버 오류가 발생했습니다.')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  Navigator.pop(context);
+                                  print("🚨 네트워크 예외: $e");
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('네트워크 오류가 발생했습니다. 다시 시도해주세요.'),
+                                    ),
+                                  );
+                                }
+                                */
+                                try {
+                                  final result = await ApiClient.put(
+                                      "/api/safe-zones", body);
+
+                                  Navigator.pop(context); // ✅ 로딩창 닫기
+
+                                  if (result["success"] == true) {
+                                    // SharedPreferences에 안전지대 정보 동기화
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+                                    await prefs.setString('safeZoneName',
+                                        zone1LocationController.text.trim());
+                                    await prefs.setDouble(
+                                      'safeZoneLatitude',
+                                      (currentZone["latitude"] ?? 0.0)
+                                          .toDouble(),
+                                    );
+                                    await prefs.setDouble(
+                                      'safeZoneLongitude',
+                                      (currentZone["longitude"] ?? 0.0)
+                                          .toDouble(),
+                                    );
+                                    await prefs.setInt(
+                                      'safeZoneRadius',
+                                      (currentZone["radius"] ?? 0).toInt(),
+                                    );
+                                    if (safeTimesForZone1 != null &&
+                                        safeTimesForZone1!.isNotEmpty) {
+                                      await prefs.setString('safeZoneTimes',
+                                          safeTimesForZone1.toString());
+                                    }
+
+                                    print(
+                                        "💾 SharedPreferences에 안전지대 정보 저장 완료");
+
+                                    // ✅ 추가: UI 즉시 반영
+                                    setState(() {
+                                      safeZones[0] = currentZone;
+                                      zone1LocationController.text =
+                                          currentZone["safeZoneName"];
+                                    });
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('✅ 안전지대 위치가 저장되었습니다!')),
+                                    );
+                                    setState(() => isEditing = false);
+                                  } else {
+                                    final status = result["statusCode"];
+                                    final error = result["error"];
+                                    print("❌ 서버 오류 ($status): $error");
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content:
+                                              Text('서버 오류가 발생했습니다. ($status)')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  Navigator.pop(context); // ✅ 로딩창 닫기
+                                  print("🚨 네트워크 예외: $e");
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            '네트워크 오류가 발생했습니다. 다시 시도해주세요.')),
+                                  );
+
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -572,8 +716,10 @@ class _SetupScreenState extends State<SetupScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    "학교",
-                    style: TextStyle(
+                    zone1LocationController.text.isNotEmpty
+                        ? zone1LocationController.text
+                        : "안전지대 미설정",
+                    style: const TextStyle(
                       fontSize: 13,
                       color: Color(0xFF6B73FF),
                       fontWeight: FontWeight.w600,

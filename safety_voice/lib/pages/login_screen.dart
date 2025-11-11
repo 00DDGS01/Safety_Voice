@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:safety_voice/main.dart';
 import 'package:safety_voice/pages/home.dart';
+import 'package:safety_voice/services/trigger_listener.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:safety_voice/services/api_client.dart';
 import 'package:safety_voice/pages/signup_screen.dart';
@@ -62,12 +64,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         final token = data['data']['token'];
+
         final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
         await prefs.setString('jwt_token', token);
 
         print("✅ 로그인 성공, JWT: $token");
+
+        await ApiClient.fetchUserSettings();
+        await ApiClient.fetchSafeZones();
+
+        await TriggerListener.instance.refreshWords();
+        await TriggerListener.instance.init(navigatorKey);
 
         if (!mounted) return;
         Navigator.pushReplacement(
@@ -289,29 +298,29 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // 회원가입 텍스트
                 TextButton(
-  onPressed: () {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const SignupScreen(),
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ),
-    );
-  },
-  style: TextButton.styleFrom(
-    padding: EdgeInsets.zero,
-    foregroundColor: const Color(0xFF577BE5), // 파란색
-  ),
-  child: const Text(
-    '계정이 없으신가요? 회원가입하기',
-    style: TextStyle(
-      fontSize: 12,
-      color: Color(0xFF577BE5),
-      decoration: TextDecoration.underline,
-    ),
-  ),
-),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => const SignupScreen(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    foregroundColor: const Color(0xFF577BE5), // 파란색
+                  ),
+                  child: const Text(
+                    '계정이 없으신가요? 회원가입하기',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF577BE5),
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
 
                 // 에러 메시지
                 if (_errorMessage != null) ...[

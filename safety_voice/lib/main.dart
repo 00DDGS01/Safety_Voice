@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:safety_voice/pages/splash_screen.dart';
 import 'package:safety_voice/services/trigger_listener.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -90,6 +92,56 @@ class _SplashWrapperState extends State<SplashWrapper> {
         print("✅ TriggerListener 초기화 완료 (앱 시작 후)");
       }
     });
+  }
+
+  Future<void> _loadSafeZonesFromServer() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    if (token == null) {
+      print("⚠️ JWT 없음 — 로그인 필요");
+      return;
+    }
+
+    final url = Uri.parse("https://safetyvoice.jp.ngrok.io/api/safe-zones");
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final utf8Body = utf8.decode(response.bodyBytes);
+        final jsonData = jsonDecode(utf8Body);
+
+        final data = jsonData["data"];
+        if (data != null && data.isNotEmpty) {
+          final zone = data[0];
+
+          await prefs.setString('safeZoneName', zone["safeZoneName"]);
+          await prefs.setDouble('safeZoneLatitude', zone["latitude"]);
+          await prefs.setDouble('safeZoneLongitude', zone["longitude"]);
+          await prefs.setInt('safeZoneRadius', zone["radius"]);
+
+          if (zone["safeTimes"] != null) {
+            await prefs.setString(
+                'safeZoneTimes', jsonEncode(zone["safeTimes"]));
+          }
+
+          print("💾 SharedPreferences에 안전지대 정보 저장 완료");
+        } else {
+          print("ℹ️ 서버에 저장된 안전지대 없음");
+        }
+      } else {
+        print("❌ 서버 오류: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("🚨 안전지대 불러오기 실패: $e");
+    }
   }
 
   @override

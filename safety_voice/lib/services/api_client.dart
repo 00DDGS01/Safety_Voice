@@ -37,7 +37,7 @@ class ApiClient {
     return await http.post(url, headers: headers, body: jsonEncode(body));
   }
 
-  static Future<http.Response> put(String endpoint, dynamic body) async {
+  static Future<Map<String, dynamic>> put(String endpoint, dynamic body) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
 
@@ -49,7 +49,37 @@ class ApiClient {
     final url = Uri.parse('$baseUrl$endpoint');
     print('➡️ PUT 요청: $url');
     print('🪪 JWT: $token');
-    return await http.put(url, headers: headers, body: jsonEncode(body));
+    print('📦 요청 본문: ${jsonEncode(body)}');
+
+    try {
+      final response =
+          await http.put(url, headers: headers, body: jsonEncode(body));
+      final utf8Body = utf8.decode(response.bodyBytes);
+
+      print('📥 응답 코드: ${response.statusCode}');
+      print('📥 응답 본문: $utf8Body');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          "success": true,
+          "statusCode": response.statusCode,
+          "data": jsonDecode(utf8Body),
+        };
+      } else {
+        return {
+          "success": false,
+          "statusCode": response.statusCode,
+          "error": jsonDecode(utf8Body),
+        };
+      }
+    } catch (e) {
+      print('🚨 네트워크 예외 발생: $e');
+      return {
+        "success": false,
+        "statusCode": 500,
+        "error": e.toString(),
+      };
+    }
   }
 
   static Future<void> fetchUserSettings() async {
@@ -97,6 +127,63 @@ class ApiClient {
       }
     } catch (e) {
       print('🚨 네트워크 오류: $e');
+    }
+  }
+
+  static Future<void> fetchSafeZones() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+
+    if (token == null) {
+      print("⚠️ JWT 없음 — 로그인 필요");
+      return;
+    }
+
+    final url = Uri.parse("$baseUrl/api/safe-zones");
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final utf8Body = utf8.decode(response.bodyBytes);
+        final jsonData = jsonDecode(utf8Body);
+        final data = jsonData["data"];
+
+        print("📥 응답 코드: ${response.statusCode}");
+        print("📥 응답 본문: ${response.body}");
+
+        if (data != null && data.isNotEmpty) {
+          final zone = data[0];
+
+          final safeZoneName = zone["safeZoneName"] ?? "";
+          final latitude = (zone["latitude"] ?? 0).toDouble();
+          final longitude = (zone["longitude"] ?? 0).toDouble();
+          final radius = (zone["radius"] ?? 0).toInt();
+
+          await prefs.setString('safeZoneName', safeZoneName);
+          await prefs.setDouble('safeZoneLatitude', latitude);
+          await prefs.setDouble('safeZoneLongitude', longitude);
+          await prefs.setInt('safeZoneRadius', radius);
+
+          if (zone["safeTimes"] != null) {
+            await prefs.setString(
+                'safeZoneTimes', jsonEncode(zone["safeTimes"]));
+          }
+          print("💾 안전지대 정보 SharedPreferences 저장 완료");
+        } else {
+          print("ℹ️ 서버에 저장된 안전지대 없음");
+        }
+      } else {
+        print("❌ 안전지대 API 오류: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("🚨 안전지대 불러오기 실패: $e");
     }
   }
 }
