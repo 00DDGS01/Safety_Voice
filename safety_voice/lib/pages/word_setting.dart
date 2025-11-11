@@ -101,9 +101,7 @@ class _SettingScreenState extends State<SettingScreen> {
 
   final List<TextEditingController> phoneControllers = List.generate(
     3,
-    (index) => TextEditingController(
-      text: index == 0 ? '112' : '010-1234-5678',
-    ),
+    (index) => TextEditingController(),
   );
 
   @override
@@ -398,7 +396,6 @@ class _SettingScreenState extends State<SettingScreen> {
                               onPressed: () async {
                                 if (!mounted) return;
 
-                                // 먼저 다이얼로그 띄우기
                                 final confirmed = await showDialog<bool>(
                                   context: context,
                                   builder: (context) => AlertDialog(
@@ -409,46 +406,46 @@ class _SettingScreenState extends State<SettingScreen> {
                                     content: const Text('정말로 설정값을 수정하시겠습니까?'),
                                     actions: [
                                       TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, false),
-                                        style: ElevatedButton.styleFrom(
+                                        onPressed: () {
+                                          Navigator.pop(
+                                              context, false); // ✅ 모달만 닫기
+                                        },
+                                        style: TextButton.styleFrom(
                                           foregroundColor: const Color.fromARGB(
                                               255, 65, 65, 65),
                                         ),
                                         child: const Text('취소'),
                                       ),
                                       TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, true),
-                                        style: ElevatedButton.styleFrom(
-                                          foregroundColor: const Color.fromARGB(
-                                              255, 65, 65, 65),
-                                        ),
+                                        onPressed: () {
+                                          _saveUserSetting();
+                                          setState(() => isEditing = false);
+                                          Navigator.pop(context, true); // ✅ 닫기
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content:
+                                                  const Text('설정값이 수정되었습니다.'),
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                              duration:
+                                                  const Duration(seconds: 2),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 12),
+                                            ),
+                                          );
+                                        },
                                         child: const Text('수정'),
                                       ),
                                     ],
                                   ),
                                 );
-                                // 사용자가 확인 눌렀을 때만 실행
-                                if (confirmed == true) {
-                                  setState(() => isEditing = false);
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text('설정값이 수정되었습니다.'),
-                                      behavior: SnackBarBehavior.floating,
-                                      duration: const Duration(seconds: 2),
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(8)),
-                                      margin: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 12),
-                                    ),
-                                  );
-                                }
-
-                                await _saveUserSetting();
-                                setState(() => isEditing = false);
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6B73FF),
@@ -465,7 +462,7 @@ class _SettingScreenState extends State<SettingScreen> {
                                 ),
                               ),
                             ),
-                          ),
+                          )
                         ],
                         const SizedBox(height: 120),
                       ],
