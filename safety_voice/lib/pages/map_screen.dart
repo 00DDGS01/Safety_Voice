@@ -107,16 +107,37 @@ void _listenToLocationChanges() {
       ),
     ),
     actions: [
-      Switch(
-        value: _isEditing,
-        activeColor: const Color(0xFF5C7CFA), // ✅ 포인트 컬러 통일
-        onChanged: (val) {
-          setState(() {
-            _isEditing = val;
-          });
-        },
-      ),
-    ],
+  // ✅ 완료 버튼 추가
+  IconButton(
+    icon: const Icon(Icons.check, color: Colors.black),
+    onPressed: () {
+      if (_center != null) {
+        print("📍 선택한 안전지대 정보 =====================");
+        print("위도(latitude): ${_center!.latitude}");
+        print("경도(longitude): ${_center!.longitude}");
+        print("반경(radius): $_radius m");
+        print("========================================");
+
+        // ✅ 결과를 이전 화면으로 전달
+        Navigator.pop(context, {
+          'latitude': _center!.latitude,
+          'longitude': _center!.longitude,
+          'radius': _radius,
+        });
+      } else {
+        print("⚠️ 안전지대를 아직 선택하지 않았습니다.");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('지도를 탭해서 안전지대를 선택하세요!')),
+        );
+      }
+    },
+  ),
+  Switch(
+    value: _isEditing,
+    activeColor: const Color(0xFF5C7CFA),
+    onChanged: (val) => setState(() => _isEditing = val),
+  ),
+],
   ),
       body: Stack(
         children: [

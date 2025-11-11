@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:safety_voice/pages/login_screen.dart';
 import 'package:safety_voice/pages/main_screen.dart'; // 경로는 실제 파일에 맞게 조정
 import 'dart:async';
-
+import 'package:safety_voice/pages/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {

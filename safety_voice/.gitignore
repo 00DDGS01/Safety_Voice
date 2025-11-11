@@ -47,4 +47,5 @@ app.*.map.json
 # secrets
 .secrets.dart
 lib/utils/secrets.dart.secrets.*
-lib/utils/secrets.*
+lib/utils/secrets.*.DS_Store
+lib/utils/secrets.dart

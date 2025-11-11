@@ -10,8 +10,11 @@ class CaseFileSelectPage extends StatefulWidget {
   final File sourceFile;
   final List<String>? excludeTitles;
 
-  const CaseFileSelectPage(
-      {super.key, required this.sourceFile, this.excludeTitles});
+  const CaseFileSelectPage({
+    super.key,
+    required this.sourceFile,
+    this.excludeTitles,
+  });
 
   @override
   State<CaseFileSelectPage> createState() => _CaseFileSelectPageState();
@@ -24,6 +27,10 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
   bool _moving = false;
   String? _error;
 
+  // 숨길 폴더명(루트)
+  static const String kRootFolderName = '내 폴더';
+  bool _isHiddenFolderName(String name) => name.trim() == kRootFolderName;
+
   @override
   void initState() {
     super.initState();
@@ -31,7 +38,6 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
   }
 
   Future<File> _resolveDataJsonFile() async {
-    // data.json은 앱 문서 폴더에 있다고 가정 (예: getApplicationDocumentsDirectory)
     final docDir = await getApplicationDocumentsDirectory();
     return File(p.join(docDir.path, 'data.json'));
   }
@@ -46,6 +52,7 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
       if (!await dataFile.exists()) {
         throw Exception('data.json을 찾을 수 없습니다: ${dataFile.path}');
       }
+
       final raw = await dataFile.readAsString();
       final decoded = jsonDecode(raw);
 
@@ -62,27 +69,22 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
         throw Exception('data.json 형식이 올바르지 않습니다. List 형태여야 합니다.');
       }
 
-      if (titles.isEmpty) {
-        throw Exception('data.json에 타이틀이 없습니다.');
-      }
-
       final exclude = (widget.excludeTitles ?? []).map((e) => e.trim()).toSet();
-      final filtered =
-          titles.where((t) => !exclude.contains(t.trim())).toList();
+      final filtered = titles
+          .where((t) => t.trim().isNotEmpty)
+          .where((t) => !_isHiddenFolderName(t)) // '내 폴더' 숨김
+          .where((t) => !exclude.contains(t.trim()))
+          .toSet()
+          .toList()
+        ..sort();
 
       if (filtered.isEmpty) {
-        throw Exception('선택 가능한 사건이 없습니다.');
+        throw Exception('또 다른 사건 파일이 없습니다.');
       }
 
       setState(() {
-        _titles = filtered.toSet().toList()..sort();
+        _titles = filtered;
         _selectedTitle = _titles.first;
-        _loading = false;
-      });
-
-      setState(() {
-        _titles = titles;
-        _selectedTitle = titles.first; // 기본 선택 1개
         _loading = false;
       });
     } catch (e) {
@@ -100,7 +102,6 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
       _error = null;
     });
     try {
-      // 대상 폴더: 문서디렉터리/<선택한 타이틀>/
       final docDir = await getApplicationDocumentsDirectory();
       final safeFolderName = _sanitizeFolderName(_selectedTitle!);
       final targetDir = Directory(p.join(docDir.path, safeFolderName));
@@ -116,7 +117,6 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
       final newPath = p.join(targetDir.path, p.basename(src.path));
       final finalPath = await _resolveCollision(newPath);
 
-      // 같은 파티션이면 rename, 실패하면 copy→delete 폴백
       File moved;
       try {
         moved = await src.rename(finalPath);
@@ -129,16 +129,15 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
         throw Exception('파일 이동에 실패했습니다.');
       }
 
-      // ✅ 여기! 이동 성공 직후 결과 반환
       final movedBytes = await moved.length();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('파일 이동 완료: ${moved.path}')),
       );
       Navigator.pop(context, {
-        'title': _selectedTitle!, // 선택한 사건 제목
-        'path': moved.path, // 최종 파일 경로
-        'bytes': movedBytes.toString(), // 파일 크기(문자열로 보냄)
+        'title': _selectedTitle!,
+        'path': moved.path,
+        'bytes': movedBytes.toString(),
       });
 
       setState(() {
@@ -152,19 +151,14 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
     }
   }
 
-  // 단일 선택 체크박스 UX: 한 개만 true가 되도록 강제
   void _onCheck(String title, bool? checked) {
-    if (checked != true) {
-      // 체크 해제는 허용하지 않고, 다른 걸 켜는 방식으로만 변경
-      return;
-    }
+    if (checked != true) return;
     setState(() {
       _selectedTitle = title;
     });
   }
 
   String _sanitizeFolderName(String input) {
-    // 폴더명에 부적합한 문자 제거/치환
     final replaced = input.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
     return replaced.isEmpty ? 'untitled' : replaced;
   }
@@ -184,74 +178,104 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
 
   @override
   Widget build(BuildContext context) {
-    final appBarTitle =
-        _selectedTitle == null ? "사건 파일 선택" : "사건: $_selectedTitle";
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF), // ← 배경색 흰색
-      appBar: AppBar(title: Text(appBarTitle)),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _ErrorView(message: _error!, onRetry: _loadTitles)
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.audiotrack),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              "이동할 녹음 파일: ${p.basename(widget.sourceFile.path)}",
-                              overflow: TextOverflow.ellipsis,
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.of(context).pop(true);
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFFFFF),
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(80),
+          child: AppBar(
+            backgroundColor: const Color.fromARGB(255, 239, 243, 255),
+            centerTitle: true,
+            automaticallyImplyLeading: true, // iOS 스와이프 back 허용
+            leading: BackButton(
+              color: Colors.black,
+              onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
+            ),
+            title: Text(
+              "파일 이동",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: MediaQuery.of(context).size.width * 0.05,
+                color: Colors.black,
+              ),
+            ),
+          ),
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? _ErrorView(message: _error!, onRetry: _loadTitles)
+                : Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.audiotrack),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "이동할 녹음 파일: ${p.basename(widget.sourceFile.path)}",
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const Divider(height: 1),
-                    Expanded(
-                      child: ListView.separated(
-                        itemCount: _titles.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final title = _titles[index];
-                          final checked = _selectedTitle == title;
-                          return CheckboxListTile(
-                            title: Text(title),
-                            value: checked,
-                            onChanged: (v) => _onCheck(title, v),
-                            controlAffinity: ListTileControlAffinity.leading,
-                          );
-                        },
+                      const Divider(height: 1),
+                      Expanded(
+                        child: ListView.separated(
+                          itemCount: _titles.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final title = _titles[index];
+                            if (_isHiddenFolderName(title)) {
+                              return const SizedBox.shrink();
+                            }
+                            final checked = _selectedTitle == title;
+                            return CheckboxListTile(
+                              title: Text(title, overflow: TextOverflow.ellipsis),
+                              value: checked,
+                              onChanged: (v) => _onCheck(title, v),
+                              controlAffinity: ListTileControlAffinity.leading,
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            icon: _moving
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.drive_file_move_outline),
-                            label:
-                                Text(_moving ? "이동 중..." : "선택한 사건 폴더로 파일 이동"),
-                            onPressed: _moving ? null : _moveFileToSelected,
+                      SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton.icon(
+                              onPressed: _moving ? null : _moveFileToSelected,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF6B73FF),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              label: Text(
+                                _moving ? '이동 중...' : '선택한 사건 폴더로 파일 이동',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+      ),
     );
   }
 }
@@ -271,16 +295,12 @@ class _ErrorView extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, size: 40),
             const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.refresh),
-              label: const Text('다시 시도'),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            FilledButton(
               onPressed: onRetry,
-            )
+              child: const Text('다시 시도'),
+            ),
           ],
         ),
       ),
