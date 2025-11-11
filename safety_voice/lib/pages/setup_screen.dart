@@ -194,13 +194,16 @@ class _SetupScreenState extends State<SetupScreen> {
                           SizedBox(height: 12),
                           _buildEditNotiWordSection(),
                           SizedBox(height: 40),
+
                           // 설정값 수정하기 버튼
-                          Container(
+                          SizedBox(
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
                               onPressed: () async {
-                                // ✅ 안전지대 이름(=위치명) 비어있는 경우
+                                if (!mounted) return;
+
+                                // 1) 입력 검증 (유효하지 않으면 다이얼로그 띄우지 않음)
                                 if (zone1LocationController.text
                                     .trim()
                                     .isEmpty) {
@@ -211,7 +214,6 @@ class _SetupScreenState extends State<SetupScreen> {
                                   return;
                                 }
 
-                                // ✅ 지도에서 선택하지 않은 경우
                                 final currentZone = safeZones[0];
                                 if (currentZone["latitude"] == null ||
                                     currentZone["longitude"] == null ||
@@ -224,39 +226,108 @@ class _SetupScreenState extends State<SetupScreen> {
                                   return;
                                 }
 
-                                // ✅ 서버에 보낼 body 생성 (safeTimes 없어도 OK)
-                                final body = [
-                                  {
-                                    "safeZoneName":
-                                        zone1LocationController.text.trim(),
-                                    "latitude": currentZone["latitude"],
-                                    "longitude": currentZone["longitude"],
-                                    "radius": currentZone["radius"],
-                                    if (safeTimesForZone1 != null &&
-                                        safeTimesForZone1!.isNotEmpty)
-                                      "safeTimes": safeTimesForZone1,
-                                  }
-                                ];
+                                // 2) 확인 다이얼로그
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    content: const Text('정말로 설정값을 수정하시겠습니까?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.pop(
+                                              context, false); // ✅ 모달만 닫기
+                                        },
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: const Color.fromARGB(
+                                              255, 65, 65, 65),
+                                        ),
+                                        child: const Text('취소'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () async {
+                                          // 3) 서버에 보낼 body 구성
+                                          final body = [
+                                            {
+                                              "safeZoneName":
+                                                  zone1LocationController.text
+                                                      .trim(),
+                                              "latitude":
+                                                  currentZone["latitude"],
+                                              "longitude":
+                                                  currentZone["longitude"],
+                                              "radius": currentZone["radius"],
+                                              if (safeTimesForZone1 != null &&
+                                                  safeTimesForZone1!.isNotEmpty)
+                                                "safeTimes": safeTimesForZone1,
+                                            }
+                                          ];
 
-                                print("📤 SafeZone PUT Body: $body");
+                                          try {
+                                            final response =
+                                                await ApiClient.put(
+                                                    "/api/safe-zones", body);
 
-                                try {
-                                  final response = await ApiClient.put(
-                                      "/api/safe-zones", body);
+                                            if (!mounted) return;
 
-                                  if (response.statusCode == 200 ||
-                                      response.statusCode == 201) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('✅ 안전지대 위치가 저장되었습니다!')),
-                                    );
-                                    setState(() => isEditing = false);
-                                  } else {
-                                    print("❌ 서버 오류: ${response.statusCode}");
-                                    print("응답 본문: ${response.body}");
-                                  }
-                                } catch (e) {
-                                  print("🚨 네트워크 예외: $e");
+                                            if (response.statusCode == 200 ||
+                                                response.statusCode == 201) {
+                                              setState(() => isEditing = false);
+                                              Navigator.pop(
+                                                  context, true); // ✅ 다이얼로그 닫기
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                      '✅ 안전지대 위치가 저장되었습니다!'),
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  duration:
+                                                      Duration(seconds: 2),
+                                                ),
+                                              );
+                                            } else {
+                                              Navigator.pop(context,
+                                                  false); // 저장 실패 시도 닫기
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                      '서버 오류: ${response.statusCode}'),
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  duration: const Duration(
+                                                      seconds: 2),
+                                                ),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            Navigator.pop(context, false);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text('네트워크 예외: $e'),
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                                duration:
+                                                    const Duration(seconds: 2),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: const Text('수정'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                // 필요시 confirmed 값(true/false/null) 활용 가능
+                                if (confirmed == true) {
+                                  // 저장 성공 후 추가 작업이 있다면 여기에
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -274,7 +345,7 @@ class _SetupScreenState extends State<SetupScreen> {
                                 ),
                               ),
                             ),
-                          ),
+                          )
                         ],
                         SizedBox(height: 120),
                       ],

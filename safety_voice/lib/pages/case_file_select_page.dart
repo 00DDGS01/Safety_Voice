@@ -95,6 +95,7 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
     }
   }
 
+  // 이동 끝난 뒤 0.3초 쉬고 pop + 결과를 이전 화면에 전달
   Future<void> _moveFileToSelected() async {
     if (_selectedTitle == null) return;
     setState(() {
@@ -129,25 +130,32 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
         throw Exception('파일 이동에 실패했습니다.');
       }
 
-      final movedBytes = await moved.length();
+      // 파일시스템 반영/상위화면 업데이트 여유
+      await Future.delayed(const Duration(milliseconds: 300));
+
       if (!mounted) return;
+
+      // (선택) 현재 페이지에서 스낵바
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('파일 이동 완료: ${moved.path}')),
       );
-      Navigator.pop(context, {
+
+      // (중요) 결과는 bool 로!
+      Navigator.pop<Map<String, dynamic>>(context, {
+        'moved': true,
+        'fromPath': src.path,
+        'toPath': moved.path,
         'title': _selectedTitle!,
-        'path': moved.path,
-        'bytes': movedBytes.toString(),
       });
 
-      setState(() {
-        _moving = false;
-      });
+      // pop 이후엔 setState 호출하지 않음(언마운트될 수 있음)
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _moving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _moving = false;
+        });
+      }
     }
   }
 
@@ -178,104 +186,116 @@ class _CaseFileSelectPageState extends State<CaseFileSelectPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.of(context).pop(true);
-        return false;
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(80),
-          child: AppBar(
-            backgroundColor: const Color.fromARGB(255, 239, 243, 255),
-            centerTitle: true,
-            automaticallyImplyLeading: true, // iOS 스와이프 back 허용
-            leading: BackButton(
+    // 기본 pop 동작, 특별 처리 없음
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFFFFF),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80),
+        child: AppBar(
+          backgroundColor: const Color.fromARGB(255, 239, 243, 255),
+          centerTitle: true,
+          automaticallyImplyLeading: true,
+          iconTheme: const IconThemeData(color: Colors.black),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _moving ? null : () => Navigator.maybePop(context),
+          ),
+          title: Text(
+            "파일 이동",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: MediaQuery.of(context).size.width * 0.05,
               color: Colors.black,
-              onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
-            ),
-            title: Text(
-              "파일 이동",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: MediaQuery.of(context).size.width * 0.05,
-                color: Colors.black,
-              ),
             ),
           ),
         ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? _ErrorView(message: _error!, onRetry: _loadTitles)
-                : Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.audiotrack),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                "이동할 녹음 파일: ${p.basename(widget.sourceFile.path)}",
-                                overflow: TextOverflow.ellipsis,
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _ErrorView(message: _error!, onRetry: _loadTitles)
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.audiotrack),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "이동할 녹음 파일: ${p.basename(widget.sourceFile.path)}",
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: _titles.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final title = _titles[index];
+                          if (_isHiddenFolderName(title)) {
+                            return const SizedBox.shrink();
+                          }
+                          final checked = _selectedTitle == title;
+                          return CheckboxListTile(
+                            title: Text(
+                              title,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            value: checked,
+                            onChanged: (v) => _onCheck(title, v),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          );
+                        },
+                      ),
+                    ),
+                    SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton.icon(
+                            onPressed: _moving ? null : _moveFileToSelected,
+                            icon: _moving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.drive_file_move_outline,
+                                    color: Colors.white,
+                                  ),
+                            label: Text(
+                              _moving ? '이동 중...' : '선택한 사건 폴더로 파일 이동',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      Expanded(
-                        child: ListView.separated(
-                          itemCount: _titles.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final title = _titles[index];
-                            if (_isHiddenFolderName(title)) {
-                              return const SizedBox.shrink();
-                            }
-                            final checked = _selectedTitle == title;
-                            return CheckboxListTile(
-                              title: Text(title, overflow: TextOverflow.ellipsis),
-                              value: checked,
-                              onChanged: (v) => _onCheck(title, v),
-                              controlAffinity: ListTileControlAffinity.leading,
-                            );
-                          },
-                        ),
-                      ),
-                      SafeArea(
-                        top: false,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton.icon(
-                              onPressed: _moving ? null : _moveFileToSelected,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF6B73FF),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              label: Text(
-                                _moving ? '이동 중...' : '선택한 사건 폴더로 파일 이동',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6B73FF),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-      ),
+                    ),
+                  ],
+                ),
     );
   }
 }
