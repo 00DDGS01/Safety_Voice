@@ -28,10 +28,14 @@ class _SetupScreenState extends State<SetupScreen> {
       TextEditingController(text: '배터리 효율을 높이시겠습니까?');
 
   // 🔹 트리거 관련
-  final TextEditingController wordController = TextEditingController(text: '잠만');
-  final TextEditingController recordSecondsController = TextEditingController(text: '2');
-  final TextEditingController recordCountController = TextEditingController(text: '3');
-  final TextEditingController emergencyCountController = TextEditingController(text: '5');
+  final TextEditingController wordController =
+      TextEditingController(text: '잠만');
+  final TextEditingController recordSecondsController =
+      TextEditingController(text: '2');
+  final TextEditingController recordCountController =
+      TextEditingController(text: '3');
+  final TextEditingController emergencyCountController =
+      TextEditingController(text: '5');
 
   // 🔹 비상 연락처
   final List<TextEditingController> phoneControllers = List.generate(
@@ -60,7 +64,7 @@ class _SetupScreenState extends State<SetupScreen> {
   ];
 
   final TextEditingController safeZone1NameController =
-    TextEditingController(text: "학교");
+      TextEditingController(text: "학교");
 
   void _goToHint(BuildContext context) {
     Navigator.push(
@@ -166,8 +170,8 @@ class _SetupScreenState extends State<SetupScreen> {
                           SizedBox(height: 25),
                           _chooseNotiSection(),
                           SizedBox(height: 25),
-                          _buildNowStateSection(),
-                          SizedBox(height: 25),
+                          // _buildNowStateSection(),
+                          // SizedBox(height: 25),
                           _buildLocationSection(),
                           SizedBox(height: 30),
                           _buildNotiWordSection(),
@@ -193,74 +197,83 @@ class _SetupScreenState extends State<SetupScreen> {
                           // 설정값 수정하기 버튼
                           Container(
                             width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                // ✅ 안전지대 이름(=위치명) 비어있는 경우
+                                if (zone1LocationController.text
+                                    .trim()
+                                    .isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('안전지대 이름(위치명)을 입력하세요!')),
+                                  );
+                                  return;
+                                }
 
-                           height: 56,
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  // ✅ 안전지대 이름(=위치명) 비어있는 경우
-                                  if (zone1LocationController.text.trim().isEmpty) {
+                                // ✅ 지도에서 선택하지 않은 경우
+                                final currentZone = safeZones[0];
+                                if (currentZone["latitude"] == null ||
+                                    currentZone["longitude"] == null ||
+                                    currentZone["radius"] == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content:
+                                            Text('먼저 주소 검색을 통해 위치를 선택하세요!')),
+                                  );
+                                  return;
+                                }
+
+                                // ✅ 서버에 보낼 body 생성 (safeTimes 없어도 OK)
+                                final body = [
+                                  {
+                                    "safeZoneName":
+                                        zone1LocationController.text.trim(),
+                                    "latitude": currentZone["latitude"],
+                                    "longitude": currentZone["longitude"],
+                                    "radius": currentZone["radius"],
+                                    if (safeTimesForZone1 != null &&
+                                        safeTimesForZone1!.isNotEmpty)
+                                      "safeTimes": safeTimesForZone1,
+                                  }
+                                ];
+
+                                print("📤 SafeZone PUT Body: $body");
+
+                                try {
+                                  final response = await ApiClient.put(
+                                      "/api/safe-zones", body);
+
+                                  if (response.statusCode == 200 ||
+                                      response.statusCode == 201) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('안전지대 이름(위치명)을 입력하세요!')),
+                                      const SnackBar(
+                                          content: Text('✅ 안전지대 위치가 저장되었습니다!')),
                                     );
-                                    return;
+                                    setState(() => isEditing = false);
+                                  } else {
+                                    print("❌ 서버 오류: ${response.statusCode}");
+                                    print("응답 본문: ${response.body}");
                                   }
-
-                                  // ✅ 지도에서 선택하지 않은 경우
-                                  final currentZone = safeZones[0];
-                                  if (currentZone["latitude"] == null ||
-                                      currentZone["longitude"] == null ||
-                                      currentZone["radius"] == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('먼저 주소 검색을 통해 위치를 선택하세요!')),
-                                    );
-                                    return;
-                                  }
-
-                                  // ✅ 서버에 보낼 body 생성 (safeTimes 없어도 OK)
-                                  final body = [
-                                    {
-                                      "safeZoneName": zone1LocationController.text.trim(),
-                                      "latitude": currentZone["latitude"],
-                                      "longitude": currentZone["longitude"],
-                                      "radius": currentZone["radius"],
-                                      if (safeTimesForZone1 != null && safeTimesForZone1!.isNotEmpty)
-                                        "safeTimes": safeTimesForZone1,
-                                    }
-                                  ];
-
-                                  print("📤 SafeZone PUT Body: $body");
-
-                                  try {
-                                    final response = await ApiClient.put("/api/safe-zones", body);
-
-                                    if (response.statusCode == 200 || response.statusCode == 201) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('✅ 안전지대 위치가 저장되었습니다!')),
-                                      );
-                                      setState(() => isEditing = false);
-                                    } else {
-                                      print("❌ 서버 오류: ${response.statusCode}");
-                                      print("응답 본문: ${response.body}");
-                                    }
-                                  } catch (e) {
-                                    print("🚨 네트워크 예외: $e");
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF6B73FF),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  '설정값 수정하기',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                } catch (e) {
+                                  print("🚨 네트워크 예외: $e");
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF6B73FF),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
+                              child: const Text(
+                                '설정값 수정하기',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                         SizedBox(height: 120),
@@ -419,43 +432,44 @@ class _SetupScreenState extends State<SetupScreen> {
     );
   }
 
-  Widget _buildNowStateSection() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Row(
-        children: [
-          Text(
-            '현재 상태',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          Spacer(),
-          Container(
-            width: 190,
-            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            decoration: BoxDecoration(
-              color: Color(0xFFE8EAFF),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                "안전지대 1번",
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF6B73FF),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+//현재 상태
+  // Widget _buildNowStateSection() {
+  //   return Container(
+  //     width: double.infinity,
+  //     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+  //     child: Row(
+  //       children: [
+  //         Text(
+  //           '현재 상태',
+  //           style: TextStyle(
+  //             fontSize: 16,
+  //             color: Colors.black,
+  //             fontWeight: FontWeight.w700,
+  //           ),
+  //         ),
+  //         Spacer(),
+  //         Container(
+  //           width: 190,
+  //           padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+  //           decoration: BoxDecoration(
+  //             color: Color(0xFFE8EAFF),
+  //             borderRadius: BorderRadius.circular(8),
+  //           ),
+  //           child: Center(
+  //             child: Text(
+  //               "안전지대 1번",
+  //               style: TextStyle(
+  //                 fontSize: 15,
+  //                 color: Color(0xFF6B73FF),
+  //                 fontWeight: FontWeight.w600,
+  //               ),
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildLocationSection() {
     return Column(
@@ -698,140 +712,142 @@ class _SetupScreenState extends State<SetupScreen> {
 
 // 편집 모드 위젯들
   Widget _buildLocationOneSection(String safeZone) {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 🔹 제목
-        const Text(
-          '안전지대 1번',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        Row(
-  crossAxisAlignment: CrossAxisAlignment.center,
-  children: [
-    const Text('위치', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-    const SizedBox(width: 12),
-    Expanded(
-      child: TextField(
-        controller: zone1LocationController,
-        decoration: InputDecoration(
-          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          hintText: '청주시 서원구 개신동 54, 충북빌라',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(6),
-            borderSide: BorderSide(color: Color(0xFF6B73FF)),
-          ),
-          isDense: true,
-        ),
-      ),
-    ),
-    const SizedBox(width: 8),
-    ElevatedButton(
-      onPressed: () async {
-        final result = await Navigator.push(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const MapScreen(),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
-
-        if (result != null) {
-          print("✅ 지도에서 받은 데이터: $result");
-          setState(() {
-            safeZones[0] = {
-              "safeZoneName": zone1LocationController.text,
-              "latitude": result['latitude'],
-              "longitude": result['longitude'],
-              "radius": result['radius'],
-              "safeTimes": safeTimesForZone1,
-            };
-          });
-        }
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xFF6B73FF),
-        foregroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        textStyle: TextStyle(fontSize: 13),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ),
-      child: const Text('주소 검색'),
-    ),
-  ],
-),
-
-        const SizedBox(height: 20),
-
-        // 🕓 타임테이블 작성 버튼
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text(
-              '시간 설정',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 🔹 제목
+          const Text(
+            '안전지대 1번',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () async {
-                final result =
-                    await showModalBottomSheet<List<Map<String, dynamic>>>(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => TimeTableModal(
-                    safeZone: safeZone,
-                    isEditing: true,
-                  ),
-                );
+          ),
+          const SizedBox(height: 20),
 
-                if (result != null) {
-                  print('✅ ${safeZone} SafeTimes: $result');
-                  setState(() {
-                    safeTimesForZone1 = result;
-                    safeZones[0]["safeTimes"] = result;
-                  });
-                }
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F3FF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Image.asset('assets/clock.png', width: 16, height: 16),
-                    const SizedBox(width: 6),
-                    const Text(
-                      '타임테이블 작성',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF6B73FF),
-                      ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text('위치',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: zone1LocationController,
+                  decoration: InputDecoration(
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    hintText: '청주시 서원구 개신동 54, 충북빌라',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
                     ),
-                  ],
+                    isDense: true,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (_, __, ___) => const MapScreen(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
+                  );
+
+                  if (result != null) {
+                    print("✅ 지도에서 받은 데이터: $result");
+                    setState(() {
+                      safeZones[0] = {
+                        "safeZoneName": zone1LocationController.text,
+                        "latitude": result['latitude'],
+                        "longitude": result['longitude'],
+                        "radius": result['radius'],
+                        "safeTimes": safeTimesForZone1,
+                      };
+                    });
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF6B73FF),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  textStyle: TextStyle(fontSize: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                child: const Text('주소 검색'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // 🕓 타임테이블 작성 버튼
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                '시간 설정',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () async {
+                  final result =
+                      await showModalBottomSheet<List<Map<String, dynamic>>>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => TimeTableModal(
+                      safeZone: safeZone,
+                      isEditing: true,
+                    ),
+                  );
+
+                  if (result != null) {
+                    print('✅ ${safeZone} SafeTimes: $result');
+                    setState(() {
+                      safeTimesForZone1 = result;
+                      safeZones[0]["safeTimes"] = result;
+                    });
+                  }
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F3FF),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Image.asset('assets/clock.png', width: 16, height: 16),
+                      const SizedBox(width: 6),
+                      const Text(
+                        '타임테이블 작성',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF6B73FF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildLocationTwoSection(String safeZone) {
     return Container(
@@ -1150,19 +1166,19 @@ class _SetupScreenState extends State<SetupScreen> {
     );
   }
 
-@override
-void dispose() {
-  notiWordController.dispose();
-  zone1LocationController.dispose(); // ✅ 새로 추가한 컨트롤러 정리
-  wordController.dispose();
-  recordSecondsController.dispose();
-  recordCountController.dispose();
-  emergencyCountController.dispose();
-  for (var controller in phoneControllers) {
-    controller.dispose();
+  @override
+  void dispose() {
+    notiWordController.dispose();
+    zone1LocationController.dispose(); // ✅ 새로 추가한 컨트롤러 정리
+    wordController.dispose();
+    recordSecondsController.dispose();
+    recordCountController.dispose();
+    emergencyCountController.dispose();
+    for (var controller in phoneControllers) {
+      controller.dispose();
+    }
+    super.dispose();
   }
-  super.dispose();
-}
 }
 
 class TimeTableModal extends StatefulWidget {
@@ -1393,4 +1409,3 @@ class _TimeTableModalState extends State<TimeTableModal> {
     );
   }
 }
-
