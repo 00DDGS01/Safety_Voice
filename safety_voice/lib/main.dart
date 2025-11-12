@@ -147,6 +147,6 @@ class _SplashWrapperState extends State<SplashWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    return const Home(); // 기존 스플래시 유지
+    return const SplashScreen(); // 기존 스플래시 유지
   }
 }

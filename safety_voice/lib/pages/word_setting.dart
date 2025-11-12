@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
@@ -606,12 +607,24 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  // (선택) 나중에 FastAPI로 업로드할 훅
+  // FastAPI 업로드 함수
   Future<void> _uploadToFastAPI(String filePath) async {
-    // TODO: dio/http로 multipart 업로드 구현
-    // final url = 'http://<fastapi-host>/train';
-    // FormData에 file 붙여서 POST
-    debugPrint('⬆️ 업로드 예정 파일: $filePath');
+    final uri = Uri.parse("https://fastapi.jp.ngrok.io/voice/train");
+    final request = http.MultipartRequest('POST', uri);
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    final response = await request.send();
+    if (response.statusCode == 200) {
+      print("✅ FastAPI 업로드 성공");
+    } else {
+      print("❌ FastAPI 업로드 실패 (${response.statusCode})");
+    }
   }
 
 //-----녹음 끝---------------------
@@ -716,10 +729,11 @@ class _SettingScreenState extends State<SettingScreen> {
                                   isLearningCompleted = true;
                                 });
 
-                                // (선택) FastAPI 업로드 훅
-                                // if (_lastLearningFilePath != null) {
-                                //   await _uploadToFastAPI(_lastLearningFilePath!);
-                                // }
+                                // FastAPI
+                                if (_lastLearningFilePath != null) {
+                                  await _uploadToFastAPI(
+                                      _lastLearningFilePath!);
+                                }
                               }
                             },
                           );
