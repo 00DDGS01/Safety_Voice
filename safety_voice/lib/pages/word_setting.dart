@@ -584,7 +584,8 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  Future<void> _stopLearningRecording({bool save = true}) async {
+  Future<void> _stopLearningRecording(
+      {bool save = true, bool showToast = true}) async {
     try {
       if (await _recorder.isRecording()) {
         final path = await _recorder.stop(); // 실제 저장 경로 반환
@@ -600,7 +601,9 @@ class _SettingScreenState extends State<SettingScreen> {
           _lastLearningFilePath = null;
         } else {
           _lastLearningFilePath = path;
-          if (context.mounted && path != null) {
+
+          // ✅ showToast=true일 때만 스낵바 표시
+          if (showToast && context.mounted && path != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('학습 음성 저장 완료\n$path')),
             );
@@ -833,7 +836,7 @@ class _SettingScreenState extends State<SettingScreen> {
           Text(
             isLearning
                 ? "마이크에 대고 평소 말투로 천천히 말해주세요."
-                : (isLearningCompleted ? "유사도?" : "저장된 목소리와 다르면 유사도가 떨어집니다."),
+                : (isLearningCompleted ? "" : "저장된 목소리와 다르면 유사도가 떨어집니다."),
             style: const TextStyle(fontSize: 13, color: Colors.black54),
           ),
           const SizedBox(height: 16),
@@ -883,7 +886,8 @@ class _SettingScreenState extends State<SettingScreen> {
                                 timer.cancel();
 
                                 // 🔵 녹음 저장(정지)
-                                await _stopLearningRecording(save: true);
+                                await _stopLearningRecording(
+                                    save: true, showToast: false);
 
                                 if (!mounted) return;
                                 setState(() {
