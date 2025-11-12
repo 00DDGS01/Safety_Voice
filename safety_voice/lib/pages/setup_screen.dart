@@ -219,25 +219,29 @@ class _SetupScreenState extends State<SetupScreen> {
                           const Divider(
                               color: Color(0xFFCACACA), thickness: 1.0),
                           SizedBox(height: 12),
-                          _buildLocationTwoSection('안전지대 2번'),
-                          SizedBox(height: 12),
-                          const Divider(
-                              color: Color(0xFFCACACA), thickness: 1.0),
-                          SizedBox(height: 12),
-                          _buildLocationThreeSection('안전지대 3번'),
-                          SizedBox(height: 12),
-                          const Divider(
-                              color: Color(0xFFCACACA), thickness: 1.0),
+                          // _buildLocationTwoSection('안전지대 2번'),
+                          // SizedBox(height: 12),
+                          // const Divider(
+                          //     color: Color(0xFFCACACA), thickness: 1.0),
+                          // SizedBox(height: 12),
+                          // _buildLocationThreeSection('안전지대 3번'),
+                          // SizedBox(height: 12),
+                          // const Divider(
+                          //     color: Color(0xFFCACACA), thickness: 1.0),
                           SizedBox(height: 12),
                           _buildEditNotiWordSection(),
                           SizedBox(height: 40),
                           // 설정값 수정하기 버튼
-                          Container(
+
+                          // 설정값 수정하기 버튼
+                          SizedBox(
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
                               onPressed: () async {
-                                // ✅ 안전지대 이름(=위치명) 비어있는 경우
+                                if (!mounted) return;
+
+                                // 1) 입력 검증 (유효하지 않으면 다이얼로그 띄우지 않음)
                                 if (zone1LocationController.text
                                     .trim()
                                     .isEmpty) {
@@ -248,7 +252,6 @@ class _SetupScreenState extends State<SetupScreen> {
                                   return;
                                 }
 
-                                // ✅ 지도에서 선택하지 않은 경우
                                 final currentZone = safeZones[0];
                                 if (currentZone["latitude"] == null ||
                                     currentZone["longitude"] == null ||
@@ -261,7 +264,49 @@ class _SetupScreenState extends State<SetupScreen> {
                                   return;
                                 }
 
-                                // ✅ 서버에 보낼 body 생성 (safeTimes 없어도 OK)
+                                // 2) 확인 다이얼로그
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    content: const Text('정말로 설정값을 수정하시겠습니까?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: const Color.fromARGB(
+                                              255, 65, 65, 65),
+                                        ),
+                                        child: const Text('취소'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: const Color.fromARGB(
+                                              255, 65, 65, 65),
+                                        ),
+                                        child: const Text('수정'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirmed != true) return; // 취소 시 종료
+
+                                // ✅ 로딩 인디케이터 표시
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (_) => const Center(
+                                      child: CircularProgressIndicator()),
+                                );
+
+                                // 3) 서버에 보낼 body 구성
                                 final body = [
                                   {
                                     "safeZoneName":
@@ -275,54 +320,12 @@ class _SetupScreenState extends State<SetupScreen> {
                                   }
                                 ];
 
-                                print("📤 SafeZone PUT Body: $body");
-
-                                // ✅ 로딩 인디케이터 표시
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (_) => const Center(
-                                      child: CircularProgressIndicator()),
-                                );
-
-                                /*try {
-                                  final result = await ApiClient.put(
-                                      "/api/safe-zones", body);
-
-                                  Navigator.pop(context);
-
-                                  if (result["success"] == true) {
-                                    // ✅ PUT 성공 후 서버에서 최신값 다시 불러오기
-                                    await ApiClient.fetchSafeZones();
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('✅ 안전지대 위치가 저장되었습니다!')),
-                                    );
-                                    setState(() => isEditing = false);
-                                  } else {
-                                    print("❌ 서버 오류: ${result["error"]}");
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('서버 오류가 발생했습니다.')),
-                                    );
-                                  }
-                                } catch (e) {
-                                  Navigator.pop(context);
-                                  print("🚨 네트워크 예외: $e");
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content:
-                                          Text('네트워크 오류가 발생했습니다. 다시 시도해주세요.'),
-                                    ),
-                                  );
-                                }
-                                */
                                 try {
                                   final result = await ApiClient.put(
                                       "/api/safe-zones", body);
 
-                                  Navigator.pop(context); // ✅ 로딩창 닫기
+                                  if (mounted)
+                                    Navigator.pop(context); // ✅ 로딩창 닫기
 
                                   if (result["success"] == true) {
                                     // SharedPreferences에 안전지대 정보 동기화
@@ -354,17 +357,21 @@ class _SetupScreenState extends State<SetupScreen> {
                                         "💾 SharedPreferences에 안전지대 정보 저장 완료");
 
                                     // ✅ 추가: UI 즉시 반영
-                                    setState(() {
-                                      safeZones[0] = currentZone;
-                                      zone1LocationController.text =
-                                          currentZone["safeZoneName"];
-                                    });
+                                    if (mounted) {
+                                      setState(() {
+                                        safeZones[0] = currentZone;
+                                        zone1LocationController.text =
+                                            currentZone["safeZoneName"];
+                                        isEditing = false;
+                                      });
 
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('✅ 안전지대 위치가 저장되었습니다!')),
-                                    );
-                                    setState(() => isEditing = false);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content:
+                                                Text('✅ 안전지대 위치가 저장되었습니다!')),
+                                      );
+                                    }
                                   } else {
                                     final status = result["statusCode"];
                                     final error = result["error"];
@@ -377,13 +384,16 @@ class _SetupScreenState extends State<SetupScreen> {
                                     );
                                   }
                                 } catch (e) {
-                                  Navigator.pop(context); // ✅ 로딩창 닫기
-                                  print("🚨 네트워크 예외: $e");
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            '네트워크 오류가 발생했습니다. 다시 시도해주세요.')),
-                                  );
+                                  if (mounted) {
+                                    Navigator.pop(context); // ✅ 로딩창 닫기
+                                    print("🚨 네트워크 예외: $e");
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content:
+                                            Text('네트워크 오류가 발생했습니다. 다시 시도해주세요.'),
+                                      ),
+                                    );
+                                  }
                                 }
                               },
                               style: ElevatedButton.styleFrom(
@@ -401,7 +411,7 @@ class _SetupScreenState extends State<SetupScreen> {
                                 ),
                               ),
                             ),
-                          ),
+                          )
                         ],
                         SizedBox(height: 120),
                       ],
@@ -599,16 +609,20 @@ class _SetupScreenState extends State<SetupScreen> {
   // }
 
   Widget _buildLocationSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 1번 - 첫 번째 줄 (1번 + 112)
-        Container(
+    return Container(
           width: double.infinity,
           margin: EdgeInsets.only(bottom: 0),
           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: Row(
             children: [
+              Text(
+                '안전지대 위치',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               Spacer(),
               Text(
                 '1번',
@@ -686,139 +700,237 @@ class _SetupScreenState extends State<SetupScreen> {
               ),
             ],
           ),
-        ),
-        // 2번 - 두 번째 줄
-        Container(
-          width: double.infinity,
-          margin: EdgeInsets.only(bottom: 0),
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(
-            children: [
-              Text(
-                '안전지대 위치',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Spacer(),
-              Text(
-                '2번',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(width: 10),
-              Container(
-                width: 120,
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Color(0xFFE8EAFF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    "집",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF6B73FF),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 10),
-              GestureDetector(
-                onTap: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => TimeTableModal(
-                    safeZone: '안전지대 2번',
-                    isEditing: false,
-                  ),
-                ),
-                child: Container(
-                  padding: EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 255, 255, 255),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Image.asset(
-                    'assets/clock.png',
-                    width: 20,
-                    height: 20,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // 3번 - 세 번째 줄 (3번 + 전화번호)
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(
-            children: [
-              Spacer(),
-              Text(
-                '3번',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(width: 10),
-              Container(
-                width: 120,
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Color(0xFFE8EAFF),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    "부모님댁",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF6B73FF),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 10),
-              GestureDetector(
-                onTap: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => TimeTableModal(
-                    safeZone: '안전지대 3번',
-                    isEditing: false, // ✅ 추가
-                  ),
-                ),
-                child: Container(
-                  padding: EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 255, 255, 255),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Image.asset(
-                    'assets/clock.png',
-                    width: 20,
-                    height: 20,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        
+    // return Column(
+      
+    //   crossAxisAlignment: CrossAxisAlignment.start,
+      
+    //   children: [
+    //     // 1번 - 첫 번째 줄 (1번 + 112)
+    //     Container(
+    //       width: double.infinity,
+    //       margin: EdgeInsets.only(bottom: 0),
+    //       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    //       child: Row(
+    //         children: [
+    //           Text(
+    //             '안전지대 위치',
+    //             style: TextStyle(
+    //               fontSize: 16,
+    //               color: Colors.black,
+    //               fontWeight: FontWeight.w700,
+    //             ),
+    //           ),
+    //           Spacer(),
+    //           Text(
+    //             '1번',
+    //             style: TextStyle(
+    //               fontSize: 16,
+    //               color: Colors.black,
+    //               fontWeight: FontWeight.w700,
+    //             ),
+    //           ),
+    //           SizedBox(width: 10),
+    //           Container(
+    //             width: 120,
+    //             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    //             decoration: BoxDecoration(
+    //               color: Color(0xFFE8EAFF),
+    //               borderRadius: BorderRadius.circular(8),
+    //             ),
+    //             child: Center(
+    //               child: Text(
+    //                 zone1LocationController.text.isNotEmpty
+    //                     ? zone1LocationController.text
+    //                     : "안전지대 미설정",
+    //                 style: const TextStyle(
+    //                   fontSize: 13,
+    //                   color: Color(0xFF6B73FF),
+    //                   fontWeight: FontWeight.w600,
+    //                 ),
+    //               ),
+    //             ),
+    //           ),
+    //           SizedBox(width: 10),
+    //           GestureDetector(
+    //             onTap: () async {
+    //               // 🟢 1️⃣ 서버 최신 데이터 먼저 불러오기
+    //               await ApiClient.fetchSafeZones();
+
+    //               // 🟢 2️⃣ SharedPreferences에서 safeTimes 읽기
+    //               final prefs = await SharedPreferences.getInstance();
+    //               final saved = prefs.getString('safeZoneTimes');
+    //               List<Map<String, dynamic>>? safeTimes;
+
+    //               if (saved != null) {
+    //                 safeTimes = (jsonDecode(saved) as List)
+    //                     .map((e) => Map<String, dynamic>.from(e))
+    //                     .toList();
+    //                 print("💾 불러온 safeTimes: $safeTimes");
+    //               } else {
+    //                 print("ℹ️ 서버에 저장된 safeTimes 없음 — 새로 작성 모드");
+    //               }
+
+    //               // 🟢 3️⃣ safeTimes를 TimeTableModal로 전달
+    //               await showModalBottomSheet(
+    //                 context: context,
+    //                 isScrollControlled: true,
+    //                 builder: (_) => TimeTableModal(
+    //                   safeZone: '안전지대 1번',
+    //                   isEditing: true,
+    //                   safeTimes: safeTimes, // ✅ 서버 값 반영
+    //                 ),
+    //               );
+    //             },
+    //             child: Container(
+    //               padding: const EdgeInsets.all(6),
+    //               decoration: BoxDecoration(
+    //                 color: Colors.white,
+    //                 borderRadius: BorderRadius.circular(6),
+    //               ),
+    //               child: Image.asset(
+    //                 'assets/clock.png',
+    //                 width: 20,
+    //                 height: 20,
+    //                 fit: BoxFit.contain,
+    //               ),
+    //             ),
+    //           ),
+    //         ],
+    //       ),
+    //     ),
+    //     // 2번 - 두 번째 줄
+    //     Container(
+    //       width: double.infinity,
+    //       margin: EdgeInsets.only(bottom: 0),
+    //       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    //       child: Row(
+    //         children: [
+    //           Text(
+    //             '안전지대 위치',
+    //             style: TextStyle(
+    //               fontSize: 16,
+    //               color: Colors.black,
+    //               fontWeight: FontWeight.w700,
+    //             ),
+    //           ),
+    //           Spacer(),
+    //           Text(
+    //             '2번',
+    //             style: TextStyle(
+    //               fontSize: 16,
+    //               color: Colors.black,
+    //               fontWeight: FontWeight.w700,
+    //             ),
+    //           ),
+    //           SizedBox(width: 10),
+    //           Container(
+    //             width: 120,
+    //             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    //             decoration: BoxDecoration(
+    //               color: Color(0xFFE8EAFF),
+    //               borderRadius: BorderRadius.circular(8),
+    //             ),
+    //             child: Center(
+    //               child: Text(
+    //                 "집",
+    //                 style: TextStyle(
+    //                   fontSize: 13,
+    //                   color: Color(0xFF6B73FF),
+    //                   fontWeight: FontWeight.w600,
+    //                 ),
+    //               ),
+    //             ),
+    //           ),
+    //           SizedBox(width: 10),
+    //           GestureDetector(
+    //             onTap: () => showModalBottomSheet(
+    //               context: context,
+    //               isScrollControlled: true,
+    //               builder: (_) => TimeTableModal(
+    //                 safeZone: '안전지대 2번',
+    //                 isEditing: false,
+    //               ),
+    //             ),
+    //             child: Container(
+    //               padding: EdgeInsets.all(6),
+    //               decoration: BoxDecoration(
+    //                 color: const Color.fromARGB(255, 255, 255, 255),
+    //                 borderRadius: BorderRadius.circular(6),
+    //               ),
+    //               child: Image.asset(
+    //                 'assets/clock.png',
+    //                 width: 20,
+    //                 height: 20,
+    //                 fit: BoxFit.contain,
+    //               ),
+    //             ),
+    //           ),
+    //         ],
+    //       ),
+    //     ),
+    //     // 3번 - 세 번째 줄 (3번 + 전화번호)
+    //     Container(
+    //       width: double.infinity,
+    //       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    //       child: Row(
+    //         children: [
+    //           Spacer(),
+    //           Text(
+    //             '3번',
+    //             style: TextStyle(
+    //               fontSize: 16,
+    //               color: Colors.black,
+    //               fontWeight: FontWeight.w700,
+    //             ),
+    //           ),
+    //           SizedBox(width: 10),
+    //           Container(
+    //             width: 120,
+    //             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+    //             decoration: BoxDecoration(
+    //               color: Color(0xFFE8EAFF),
+    //               borderRadius: BorderRadius.circular(8),
+    //             ),
+    //             child: Center(
+    //               child: Text(
+    //                 "부모님댁",
+    //                 style: TextStyle(
+    //                   fontSize: 13,
+    //                   color: Color(0xFF6B73FF),
+    //                   fontWeight: FontWeight.w600,
+    //                 ),
+    //               ),
+    //             ),
+    //           ),
+    //           SizedBox(width: 10),
+    //           GestureDetector(
+    //             onTap: () => showModalBottomSheet(
+    //               context: context,
+    //               isScrollControlled: true,
+    //               builder: (_) => TimeTableModal(
+    //                 safeZone: '안전지대 3번',
+    //                 isEditing: false, // ✅ 추가
+    //               ),
+    //             ),
+    //             child: Container(
+    //               padding: EdgeInsets.all(6),
+    //               decoration: BoxDecoration(
+    //                 color: const Color.fromARGB(255, 255, 255, 255),
+    //                 borderRadius: BorderRadius.circular(6),
+    //               ),
+    //               child: Image.asset(
+    //                 'assets/clock.png',
+    //                 width: 20,
+    //                 height: 20,
+    //                 fit: BoxFit.contain,
+    //               ),
+    //             ),
+    //           ),
+    //         ],
+    //       ),
+    //     ),
+     // ],
     );
   }
 
@@ -1016,261 +1128,261 @@ class _SetupScreenState extends State<SetupScreen> {
     );
   }
 
-  Widget _buildLocationTwoSection(String safeZone) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 🔹 제목
-          const Text(
-            '안전지대 2번',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
+  // Widget _buildLocationTwoSection(String safeZone) {
+  //   return Container(
+  //     width: double.infinity,
+  //     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         // 🔹 제목
+  //         const Text(
+  //           '안전지대 2번',
+  //           style: TextStyle(
+  //             fontSize: 16,
+  //             fontWeight: FontWeight.bold,
+  //           ),
+  //         ),
+  //         const SizedBox(height: 20),
 
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                '위치',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    hintText: '청주시 서원구 개신동 1, 충북대학교',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide:
-                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
-                    ),
-                    isDense: true,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (_, __, ___) =>
-                          const MapScreen(), // 🔹 실제 지도 화면 위젯
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6B73FF),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  textStyle: TextStyle(fontSize: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                child: const Text('주소 검색'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+  //         Row(
+  //           crossAxisAlignment: CrossAxisAlignment.center,
+  //           children: [
+  //             const Text(
+  //               '위치',
+  //               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+  //             ),
+  //             const SizedBox(width: 12),
+  //             Expanded(
+  //               child: TextField(
+  //                 decoration: InputDecoration(
+  //                   contentPadding:
+  //                       EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+  //                   hintText: '청주시 서원구 개신동 1, 충북대학교',
+  //                   border: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.circular(6),
+  //                     borderSide: BorderSide(color: Color(0xFF6B73FF)),
+  //                   ),
+  //                   enabledBorder: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.circular(6),
+  //                     borderSide: BorderSide(color: Color(0xFF6B73FF)),
+  //                   ),
+  //                   focusedBorder: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.circular(6),
+  //                     borderSide:
+  //                         BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+  //                   ),
+  //                   isDense: true,
+  //                 ),
+  //               ),
+  //             ),
+  //             const SizedBox(width: 8),
+  //             ElevatedButton(
+  //               onPressed: () {
+  //                 Navigator.push(
+  //                   context,
+  //                   PageRouteBuilder(
+  //                     pageBuilder: (_, __, ___) =>
+  //                         const MapScreen(), // 🔹 실제 지도 화면 위젯
+  //                     transitionDuration: Duration.zero,
+  //                     reverseTransitionDuration: Duration.zero,
+  //                   ),
+  //                 );
+  //               },
+  //               style: ElevatedButton.styleFrom(
+  //                 backgroundColor: Color(0xFF6B73FF),
+  //                 foregroundColor: Colors.white,
+  //                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  //                 textStyle: TextStyle(fontSize: 13),
+  //                 shape: RoundedRectangleBorder(
+  //                   borderRadius: BorderRadius.circular(4),
+  //                 ),
+  //               ),
+  //               child: const Text('주소 검색'),
+  //             ),
+  //           ],
+  //         ),
+  //         const SizedBox(height: 16),
 
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                '시간',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => TimeTableModal(
-                      safeZone: safeZone, // 🔹 넘기는 안전지대 이름
-                      isEditing: true, // 🔹 작성 모드
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFF1F3FF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'assets/clock.png',
-                        width: 16,
-                        height: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        '타임테이블 작성',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF6B73FF),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  //         Row(
+  //           crossAxisAlignment: CrossAxisAlignment.center,
+  //           children: [
+  //             const Text(
+  //               '시간',
+  //               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+  //             ),
+  //             const SizedBox(width: 12),
+  //             GestureDetector(
+  //               onTap: () {
+  //                 showModalBottomSheet(
+  //                   context: context,
+  //                   isScrollControlled: true,
+  //                   builder: (_) => TimeTableModal(
+  //                     safeZone: safeZone, // 🔹 넘기는 안전지대 이름
+  //                     isEditing: true, // 🔹 작성 모드
+  //                   ),
+  //                 );
+  //               },
+  //               child: Container(
+  //                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  //                 decoration: BoxDecoration(
+  //                   color: Color(0xFFF1F3FF),
+  //                   borderRadius: BorderRadius.circular(8),
+  //                 ),
+  //                 child: Row(
+  //                   children: [
+  //                     Image.asset(
+  //                       'assets/clock.png',
+  //                       width: 16,
+  //                       height: 16,
+  //                     ),
+  //                     const SizedBox(width: 6),
+  //                     const Text(
+  //                       '타임테이블 작성',
+  //                       style: TextStyle(
+  //                         fontSize: 11,
+  //                         fontWeight: FontWeight.w500,
+  //                         color: Color(0xFF6B73FF),
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
-  Widget _buildLocationThreeSection(String safeZone) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 🔹 제목
-          const Text(
-            '안전지대 3번',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
+  // Widget _buildLocationThreeSection(String safeZone) {
+  //   return Container(
+  //     width: double.infinity,
+  //     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         // 🔹 제목
+  //         const Text(
+  //           '안전지대 3번',
+  //           style: TextStyle(
+  //             fontSize: 16,
+  //             fontWeight: FontWeight.bold,
+  //           ),
+  //         ),
+  //         const SizedBox(height: 20),
 
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                '위치',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    hintText: '대전광역시 유성구 반석동로 123, 108동',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Color(0xFF6B73FF)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide:
-                          BorderSide(color: Color(0xFF6B73FF), width: 1.5),
-                    ),
-                    isDense: true,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (_, __, ___) =>
-                          const MapScreen(), // 🔹 실제 지도 화면 위젯
-                      transitionDuration: Duration.zero,
-                      reverseTransitionDuration: Duration.zero,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6B73FF),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  textStyle: TextStyle(fontSize: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                child: const Text('주소 검색'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+  //         Row(
+  //           crossAxisAlignment: CrossAxisAlignment.center,
+  //           children: [
+  //             const Text(
+  //               '위치',
+  //               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+  //             ),
+  //             const SizedBox(width: 12),
+  //             Expanded(
+  //               child: TextField(
+  //                 decoration: InputDecoration(
+  //                   contentPadding:
+  //                       EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+  //                   hintText: '대전광역시 유성구 반석동로 123, 108동',
+  //                   border: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.circular(6),
+  //                     borderSide: BorderSide(color: Color(0xFF6B73FF)),
+  //                   ),
+  //                   enabledBorder: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.circular(6),
+  //                     borderSide: BorderSide(color: Color(0xFF6B73FF)),
+  //                   ),
+  //                   focusedBorder: OutlineInputBorder(
+  //                     borderRadius: BorderRadius.circular(6),
+  //                     borderSide:
+  //                         BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+  //                   ),
+  //                   isDense: true,
+  //                 ),
+  //               ),
+  //             ),
+  //             const SizedBox(width: 8),
+  //             ElevatedButton(
+  //               onPressed: () {
+  //                 Navigator.push(
+  //                   context,
+  //                   PageRouteBuilder(
+  //                     pageBuilder: (_, __, ___) =>
+  //                         const MapScreen(), // 🔹 실제 지도 화면 위젯
+  //                     transitionDuration: Duration.zero,
+  //                     reverseTransitionDuration: Duration.zero,
+  //                   ),
+  //                 );
+  //               },
+  //               style: ElevatedButton.styleFrom(
+  //                 backgroundColor: Color(0xFF6B73FF),
+  //                 foregroundColor: Colors.white,
+  //                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  //                 textStyle: TextStyle(fontSize: 13),
+  //                 shape: RoundedRectangleBorder(
+  //                   borderRadius: BorderRadius.circular(4),
+  //                 ),
+  //               ),
+  //               child: const Text('주소 검색'),
+  //             ),
+  //           ],
+  //         ),
+  //         const SizedBox(height: 16),
 
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                '시간',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => TimeTableModal(
-                      safeZone: safeZone, // 🔹 넘기는 안전지대 이름
-                      isEditing: true, // 🔹 작성 모드
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Color(0xFFF1F3FF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'assets/clock.png',
-                        width: 16,
-                        height: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        '타임테이블 작성',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF6B73FF),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  //         Row(
+  //           crossAxisAlignment: CrossAxisAlignment.center,
+  //           children: [
+  //             const Text(
+  //               '시간',
+  //               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+  //             ),
+  //             const SizedBox(width: 12),
+  //             GestureDetector(
+  //               onTap: () {
+  //                 showModalBottomSheet(
+  //                   context: context,
+  //                   isScrollControlled: true,
+  //                   builder: (_) => TimeTableModal(
+  //                     safeZone: safeZone, // 🔹 넘기는 안전지대 이름
+  //                     isEditing: true, // 🔹 작성 모드
+  //                   ),
+  //                 );
+  //               },
+  //               child: Container(
+  //                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  //                 decoration: BoxDecoration(
+  //                   color: Color(0xFFF1F3FF),
+  //                   borderRadius: BorderRadius.circular(8),
+  //                 ),
+  //                 child: Row(
+  //                   children: [
+  //                     Image.asset(
+  //                       'assets/clock.png',
+  //                       width: 16,
+  //                       height: 16,
+  //                     ),
+  //                     const SizedBox(width: 6),
+  //                     const Text(
+  //                       '타임테이블 작성',
+  //                       style: TextStyle(
+  //                         fontSize: 11,
+  //                         fontWeight: FontWeight.w500,
+  //                         color: Color(0xFF6B73FF),
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildEditNotiWordSection() {
     return Container(
