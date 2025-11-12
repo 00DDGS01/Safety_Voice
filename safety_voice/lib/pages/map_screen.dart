@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:geocoding/geocoding.dart' as geocoding; // ✅ 별칭 추가
 import 'package:safety_voice/services/trigger_listener.dart';
 
 class MapScreen extends StatefulWidget {
@@ -15,17 +16,19 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   late GoogleMapController _mapController;
   final Location _location = Location();
+  final TextEditingController _searchController = TextEditingController();
 
-  LatLng? _center; // ✅ null이면 원 표시 안 함
+  LatLng? _center;
   double _radius = 100;
-  bool _isEditing = false; // ✅ 토글 on/off
+  bool _isEditing = false;
   final List<double> _radiusOptions = [20, 50, 100, 200];
+  bool _isInSafeZone = false;
 
   @override
   void initState() {
     super.initState();
     _initLocation();
-    _listenToLocationChanges(); // ✅ 실시간 위치 감시 시작
+    _listenToLocationChanges();
   }
 
   Future<void> _initLocation() async {
@@ -43,26 +46,31 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  bool _isInSafeZone = false; // 현재 안전지대 안에 있는지 여부
+  void _listenToLocationChanges() {
+    _location.onLocationChanged.listen((locData) {
+      if (_center == null) return;
 
-void _listenToLocationChanges() {
-  _location.onLocationChanged.listen((locData) {
-    if (_center == null) return; // 아직 안전지대 설정 안 했으면 무시
+      final currentPos = LatLng(locData.latitude!, locData.longitude!);
+      final distance = _calculateDistance(_center!, currentPos);
 
-    final currentPos = LatLng(locData.latitude!, locData.longitude!);
-    final distance = _calculateDistance(_center!, currentPos);
+      if (distance <= _radius && !_isInSafeZone) {
+        _isInSafeZone = true;
+        print("🛑 안전지대 진입 → 마이크 정지");
+        TriggerListener.instance.stopListening();
+      } else if (distance > _radius && _isInSafeZone) {
+        _isInSafeZone = false;
+        print("✅ 안전지대 벗어남 → 마이크 재개");
+        TriggerListener.instance.startListening();
+      }
+    });
+  }
 
-    if (distance <= _radius && !_isInSafeZone) {
-      _isInSafeZone = true;
-      print("🛑 안전지대 진입 → 마이크 정지");
-      TriggerListener.instance.stopListening(); // ✅ 마이크 정지
-    } else if (distance > _radius && _isInSafeZone) {
-      _isInSafeZone = false;
-      print("✅ 안전지대 벗어남 → 마이크 재개");
-      TriggerListener.instance.startListening(); // ✅ 마이크 재시작
-    }
-  });
-}
+  void _onMapTap(LatLng tappedPoint) {
+    if (!_isEditing) return;
+    setState(() {
+      _center = tappedPoint;
+    });
+  }
 
   double getZoomFromRadius(double radius) {
     if (radius <= 20) return 18.5;
@@ -83,62 +91,103 @@ void _listenToLocationChanges() {
     }
   }
 
-  void _onMapTap(LatLng tappedPoint) {
-    if (!_isEditing) return; // ✅ 편집 모드 아닐 때는 무시
-    setState(() {
-      _center = tappedPoint;
-    });
+  Future<void> _searchAndNavigate() async {
+  String query = _searchController.text;
+  if (query.isEmpty) return;
+
+  try {
+    // ✅ geocoding prefix로 구분
+    List<geocoding.Location> locations = await geocoding.locationFromAddress(query);
+
+    if (locations.isNotEmpty) {
+      final location = locations.first;
+      final LatLng searchedLatLng =
+          LatLng(location.latitude, location.longitude);
+
+      _mapController.animateCamera(
+        CameraUpdate.newLatLngZoom(searchedLatLng, 16.5),
+      );
+
+      if (_isEditing) {
+        setState(() {
+          _center = searchedLatLng;
+        });
+      }
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('검색에 실패했습니다: $e')),
+    );
+  }
+}
+
+  Widget _buildSearchBar() {
+    return Positioned(
+      top: 30,
+      left: 15,
+      right: 15,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
+        ),
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: "검색할 장소를 입력하세요",
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: _searchAndNavigate,
+            ),
+            border: InputBorder.none,
+          ),
+          onSubmitted: (_) => _searchAndNavigate(),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-  appBar: AppBar(
-    backgroundColor: const Color.fromARGB(255, 239, 243, 255),
-    centerTitle: true,
-    elevation: 0, // ✅ 그림자 제거
-    title: const Text(
-      '안전지대 설정',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 18,
-        color: Colors.black,
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 239, 243, 255),
+        centerTitle: true,
+        elevation: 0,
+        title: const Text(
+          '안전지대 설정',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.black,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check, color: Colors.black),
+            onPressed: () {
+              if (_center != null) {
+                Navigator.pop(context, {
+                  'latitude': _center!.latitude,
+                  'longitude': _center!.longitude,
+                  'radius': _radius,
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('지도를 탭해서 안전지대를 선택하세요!')),
+                );
+              }
+            },
+          ),
+          Switch(
+            value: _isEditing,
+            activeColor: const Color(0xFF5C7CFA),
+            onChanged: (val) => setState(() => _isEditing = val),
+          ),
+        ],
       ),
-    ),
-    actions: [
-  // ✅ 완료 버튼 추가
-  IconButton(
-    icon: const Icon(Icons.check, color: Colors.black),
-    onPressed: () {
-      if (_center != null) {
-        print("📍 선택한 안전지대 정보 =====================");
-        print("위도(latitude): ${_center!.latitude}");
-        print("경도(longitude): ${_center!.longitude}");
-        print("반경(radius): $_radius m");
-        print("========================================");
-
-        // ✅ 결과를 이전 화면으로 전달
-        Navigator.pop(context, {
-          'latitude': _center!.latitude,
-          'longitude': _center!.longitude,
-          'radius': _radius,
-        });
-      } else {
-        print("⚠️ 안전지대를 아직 선택하지 않았습니다.");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('지도를 탭해서 안전지대를 선택하세요!')),
-        );
-      }
-    },
-  ),
-  Switch(
-    value: _isEditing,
-    activeColor: const Color(0xFF5C7CFA),
-    onChanged: (val) => setState(() => _isEditing = val),
-  ),
-],
-  ),
       body: Stack(
         children: [
           GoogleMap(
@@ -150,6 +199,8 @@ void _listenToLocationChanges() {
               _mapController = controller;
             },
             onTap: _onMapTap,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: true,
             markers: _center != null
                 ? {
                     Marker(
@@ -161,9 +212,7 @@ void _listenToLocationChanges() {
                           _center = newPosition;
                         });
                       },
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueRed,
-                      ),
+                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
                     ),
                   }
                 : {},
@@ -179,11 +228,12 @@ void _listenToLocationChanges() {
                     ),
                   }
                 : {},
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
           ),
 
-          // ✅ 반경 조절 UI (편집 모드일 때만 표시)
+          // ✅ 검색창 표시
+          _buildSearchBar(),
+
+          // ✅ 반경 조절 UI
           if (_isEditing)
             Positioned(
               bottom: 40,
@@ -199,10 +249,10 @@ void _listenToLocationChanges() {
                         borderRadius: BorderRadius.circular(30),
                         onTap: () => _selectRadius(value),
                         child: Container(
-                          padding: const EdgeInsets.all(6), // ✅ 터치 범위 약 1.4배 확장 (기존 대비)
+                          padding: const EdgeInsets.all(6),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            width: isSelected ? 24 : 14, // 🎨 기존 디자인 그대로 유지
+                            width: isSelected ? 24 : 14,
                             height: isSelected ? 24 : 14,
                             decoration: BoxDecoration(
                               color: isSelected
@@ -237,15 +287,16 @@ void _listenToLocationChanges() {
     );
   }
 }
-//거리 계산 함수
+
+// ✅ 거리 계산 함수 (State 클래스 밖)
 double _calculateDistance(LatLng p1, LatLng p2) {
-  const R = 6371000; // 지구 반지름(m)
+  const R = 6371000;
   final dLat = (p2.latitude - p1.latitude) * (pi / 180);
   final dLon = (p2.longitude - p1.longitude) * (pi / 180);
   final a = sin(dLat / 2) * sin(dLat / 2) +
       cos(p1.latitude * (pi / 180)) *
-      cos(p2.latitude * (pi / 180)) *
-      sin(dLon / 2) * sin(dLon / 2);
+          cos(p2.latitude * (pi / 180)) *
+          sin(dLon / 2) * sin(dLon / 2);
   final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-  return R * c; // 거리(m)
+  return R * c;
 }

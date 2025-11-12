@@ -64,6 +64,9 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Noto Sans KR',
       ),
       home: const SplashWrapper(), // ✅ 아래 위젯으로 교체
+       routes: {
+    '/home': (context) => const Home(), // ← ✅ 이게 반드시 있어야 작동
+  },
     );
   }
 }
