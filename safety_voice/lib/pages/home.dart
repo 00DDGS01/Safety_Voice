@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show rootBundle, SystemNavigator;
 import 'package:intl/intl.dart';
 
 import 'package:safety_voice/pages/word_setting.dart';
@@ -32,7 +32,9 @@ String _formatBytes(int bytes) {
 }
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  const Home({super.key, this.startInList = false});
+    final bool startInList;
+
   @override
   State<Home> createState() => _HomeState();
 }
@@ -41,6 +43,8 @@ class _HomeState extends State<Home> {
   // === 다중 선택 상태 ===
   bool _selectionMode = false;
   final Set<String> _selectedTitles = {};
+
+  DateTime? _lastPressedAt;
 
   void _enterSelection(String title) {
     setState(() {
@@ -124,8 +128,7 @@ class _HomeState extends State<Home> {
     }
   }
 
-  bool isCalendarMode = true;
-
+  late bool isCalendarMode;
   // 연/월 드롭다운 상태 (일은 제거)
   late int _year;
   late int _month; // 1~12
@@ -303,6 +306,9 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+
+      isCalendarMode = !widget.startInList; // ← 여기서 모드 설정
+
     _year = _today.year;
     _month = _today.month;
 
@@ -348,7 +354,37 @@ class _HomeState extends State<Home> {
     final descCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
-    return Scaffold(
+
+return PopScope(
+      canPop: false, // 시스템의 뒤로가기를 일단 비활성화
+      onPopInvoked: (bool didPop) {
+        if (didPop) return; // 이미 pop이 수행되었다면 아무것도 안 함
+
+        // ⭐️ 3-1. 다중 선택 모드일 경우, 앱 종료 대신 선택 해제
+        if (_selectionMode) {
+          _clearSelection();
+          return;
+        }
+
+        // ⭐️ 3-2. 일반 모드에서 종료 확인 로직
+        final now = DateTime.now();
+        if (_lastPressedAt == null ||
+            now.difference(_lastPressedAt!) > const Duration(seconds: 2)) {
+          
+          // 첫 번째 누름이거나, 2초가 지난 후 누른 경우
+          _lastPressedAt = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('한 번 더 누르면 앱이 종료됩니다.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          // 2초 이내에 다시 누른 경우 (앱 종료)
+          SystemNavigator.pop();
+        }
+      },
+    child: Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -472,7 +508,8 @@ class _HomeState extends State<Home> {
           ),
         ),
       ),
-    );
+    ),
+);
   }
 
   Widget _buildListMode() {
