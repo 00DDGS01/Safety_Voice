@@ -46,8 +46,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final String password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
+      _showSnackbar('아이디와 비밀번호를 입력하세요.');
       setState(() {
-        _errorMessage = '아이디와 비밀번호를 입력하세요.';
         _isLoading = false;
       });
       return;
@@ -62,9 +62,10 @@ class _LoginScreenState extends State<LoginScreen> {
       print("🔍 로그인 응답 코드: ${response.statusCode}");
       print("📦 응답 본문: ${response.body}");
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final token = data['data']['token'];
+      final body = jsonDecode(response.body);
+
+      if (body['success'] == true) {
+        final token = body['data']['token'];
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.clear();
@@ -80,31 +81,45 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (_, __, ___) => const Home(),
-              transitionDuration: Duration.zero,
-              reverseTransitionDuration: Duration.zero,
-            ),
-            (route) => false, // 이전 모든 화면 제거!
-          );
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const Home(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+          (route) => false,
+        );
       } else {
-        final error = jsonDecode(response.body);
-        setState(() {
-          _errorMessage = error['message'] ?? '로그인 실패';
-        });
+        final message = body['message'] ?? '로그인 실패';
+        _showSnackbar(message);
       }
     } catch (e) {
       print("🚨 로그인 오류: $e");
-      setState(() {
-        _errorMessage = '서버 연결 오류: $e';
-      });
+      _showSnackbar('서버 오류: $e');
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
   }
+
+void _showSnackbar(String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      backgroundColor: Colors.grey[850],
+      content: Text(
+        message,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+        ),
+      ),
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 2),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
