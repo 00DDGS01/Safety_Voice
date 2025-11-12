@@ -32,7 +32,9 @@ String _formatBytes(int bytes) {
 }
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  const Home({super.key, this.startInList = false});
+    final bool startInList;
+
   @override
   State<Home> createState() => _HomeState();
 }
@@ -126,8 +128,7 @@ class _HomeState extends State<Home> {
     }
   }
 
-  bool isCalendarMode = true;
-
+  late bool isCalendarMode;
   // 연/월 드롭다운 상태 (일은 제거)
   late int _year;
   late int _month; // 1~12
@@ -305,6 +306,9 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+
+      isCalendarMode = !widget.startInList; // ← 여기서 모드 설정
+
     _year = _today.year;
     _month = _today.month;
 

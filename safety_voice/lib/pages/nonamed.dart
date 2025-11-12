@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:safety_voice/pages/case_file_select_page.dart';
+import 'package:safety_voice/pages/home.dart';
 import 'package:safety_voice/services/gpt_service.dart';
 import 'package:safety_voice/services/whisper_service.dart';
 import 'dart:typed_data';
@@ -192,15 +193,18 @@ class _NonamedState extends State<Nonamed> {
 Widget build(BuildContext context) {
 return PopScope(
   canPop: false,
-  onPopInvoked: (didPop) {
-    if (!didPop) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/home', // ← MainScreen으로 이동
-        (route) => false,
-      );
-    }
-  },
+onPopInvoked: (didPop) {
+  if (!didPop) {
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const Home(startInList: true),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  }
+},
     child: Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: PreferredSize(
@@ -212,10 +216,13 @@ return PopScope(
           leading: IconButton(
             icon: Image.asset('assets/images/back.png', height: 24),
             onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(
+            Navigator.pushReplacement(
                 context,
-                '/home', // ← 여기도 동일하게
-                (route) => false,
+                PageRouteBuilder(
+                  pageBuilder: (_, __, ___) => const Home(startInList: true),
+                  transitionDuration: Duration.zero,
+                  reverseTransitionDuration: Duration.zero,
+                ),
               );
             },
           ),
