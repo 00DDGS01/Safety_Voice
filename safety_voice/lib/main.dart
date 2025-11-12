@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:safety_voice/pages/home.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:safety_voice/pages/splash_screen.dart';
@@ -63,6 +64,9 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Noto Sans KR',
       ),
       home: const SplashWrapper(), // ✅ 아래 위젯으로 교체
+       routes: {
+    '/home': (context) => const Home(), // ← ✅ 이게 반드시 있어야 작동
+  },
     );
   }
 }

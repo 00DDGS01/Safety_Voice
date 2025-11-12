@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:safety_voice/pages/setup_screen.dart';
@@ -77,6 +78,9 @@ class _SettingScreenState extends State<SettingScreen> {
   bool isLearningCompleted = false;
   double _progressValue = 0.0;
   Timer? _progressTimer;
+
+  double? _matchScore;
+  bool? _isSamePerson;
 
   Timer? _timer;
   List<double> waveformData = List.filled(50, 0.0);
@@ -380,6 +384,8 @@ class _SettingScreenState extends State<SettingScreen> {
                           _buildViewEmergencyWordSection(),
                           const SizedBox(height: 25),
                           _buildViewContactSection(),
+                          const SizedBox(height: 25),
+                          _buildVoiceTestingSection(),
                         ] else ...[
                           _buildVoiceLearningSection(),
                           const SizedBox(height: 20),
@@ -578,7 +584,8 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  Future<void> _stopLearningRecording({bool save = true}) async {
+  Future<void> _stopLearningRecording(
+      {bool save = true, bool showToast = true}) async {
     try {
       if (await _recorder.isRecording()) {
         final path = await _recorder.stop(); // 실제 저장 경로 반환
@@ -594,7 +601,9 @@ class _SettingScreenState extends State<SettingScreen> {
           _lastLearningFilePath = null;
         } else {
           _lastLearningFilePath = path;
-          if (context.mounted && path != null) {
+
+          // ✅ showToast=true일 때만 스낵바 표시
+          if (showToast && context.mounted && path != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('학습 음성 저장 완료\n$path')),
             );
@@ -606,12 +615,24 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  // (선택) 나중에 FastAPI로 업로드할 훅
+  // FastAPI 업로드 함수
   Future<void> _uploadToFastAPI(String filePath) async {
-    // TODO: dio/http로 multipart 업로드 구현
-    // final url = 'http://<fastapi-host>/train';
-    // FormData에 file 붙여서 POST
-    debugPrint('⬆️ 업로드 예정 파일: $filePath');
+    final uri = Uri.parse("https://fastapi.jp.ngrok.io/voice/train");
+    final request = http.MultipartRequest('POST', uri);
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    final response = await request.send();
+    if (response.statusCode == 200) {
+      print("✅ FastAPI 업로드 성공");
+    } else {
+      print("❌ FastAPI 업로드 실패 (${response.statusCode})");
+    }
   }
 
 //-----녹음 끝---------------------
@@ -716,10 +737,11 @@ class _SettingScreenState extends State<SettingScreen> {
                                   isLearningCompleted = true;
                                 });
 
-                                // (선택) FastAPI 업로드 훅
-                                // if (_lastLearningFilePath != null) {
-                                //   await _uploadToFastAPI(_lastLearningFilePath!);
-                                // }
+                                // FastAPI
+                                if (_lastLearningFilePath != null) {
+                                  await _uploadToFastAPI(
+                                      _lastLearningFilePath!);
+                                }
                               }
                             },
                           );
@@ -775,6 +797,249 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
+  Widget _buildVoiceTestingSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF3FF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: isLearningCompleted
+                      ? Colors.green
+                      : const Color(0xFF6B73FF),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                "목소리 유사도를 측정해보세요!",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isLearning
+                ? "마이크에 대고 평소 말투로 천천히 말해주세요."
+                : (isLearningCompleted ? "" : "저장된 목소리와 다르면 유사도가 떨어집니다."),
+            style: const TextStyle(fontSize: 13, color: Colors.black54),
+          ),
+          const SizedBox(height: 16),
+          if (isLearning) ...[
+            LinearProgressIndicator(
+              value: _progressValue,
+              backgroundColor: Colors.grey[300],
+              color: const Color(0xFF6B73FF),
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            const SizedBox(height: 16),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: isLearning
+                      ? null
+                      : () async {
+                          // 시작 상태로 전환
+                          setState(() {
+                            isLearning = true;
+                            isLearningCompleted = false;
+                            _progressValue = 0.0;
+                          });
+
+                          // 🔴 실제 녹음 시작
+                          await _startLearningRecording();
+
+                          // 진행바 타이머 시작
+                          _progressTimer?.cancel();
+                          _progressTimer = Timer.periodic(
+                            const Duration(milliseconds: 200),
+                            (timer) async {
+                              if (!mounted) return;
+
+                              setState(() {
+                                _progressValue += 0.05; // 약 4초
+                                if (_progressValue >= 1.0) {
+                                  _progressValue = 1.0;
+                                }
+                              });
+
+                              // 완료 시점
+                              if (_progressValue >= 1.0) {
+                                timer.cancel();
+
+                                // 🔵 녹음 저장(정지)
+                                await _stopLearningRecording(
+                                    save: true, showToast: false);
+
+                                if (!mounted) return;
+                                setState(() {
+                                  isLearning = false;
+                                  isLearningCompleted = true;
+                                });
+
+                                if (_progressValue >= 1.0) {
+                                  timer.cancel();
+
+                                  // 🔵 녹음 저장(정지)
+                                  await _stopLearningRecording(save: true);
+
+                                  if (!mounted) return;
+                                  setState(() {
+                                    isLearning = false;
+                                    isLearningCompleted = true;
+                                  });
+
+                                  // ✅ FastAPI 유사도 검사 호출
+                                  if (_lastLearningFilePath != null) {
+                                    await _verifyWithFastAPI(
+                                        _lastLearningFilePath!);
+                                  }
+                                }
+                              }
+                            },
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6B73FF),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.mic, size: 20),
+                  label: Text(
+                    isLearning
+                        ? "녹음 중..."
+                        : (isLearningCompleted ? "다시 녹음하기" : "녹음 시작"),
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              if (isLearning) ...[
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () async {
+                    // 진행바 중단
+                    _progressTimer?.cancel();
+                    // 🟡 사용자 취소 → 파일 삭제
+                    await _stopLearningRecording(save: false);
+
+                    if (!mounted) return;
+                    setState(() {
+                      isLearning = false;
+                      _progressValue = 0.0;
+                    });
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side:
+                        const BorderSide(color: Color(0xFF6B73FF), width: 1.5),
+                    foregroundColor: const Color(0xFF6B73FF),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text("중지"),
+                ),
+              ],
+            ],
+          ),
+          // ✅ 🔽 여기 추가! — 유사도 결과 표시 블록
+          if (_matchScore != null) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "유사도: ${(_matchScore! * 100).toStringAsFixed(2)}%",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    _isSamePerson == true ? "✅ 같은 사람" : "⚠️ 다른 사람",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: _isSamePerson == true
+                          ? Colors.green
+                          : Colors.redAccent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _verifyWithFastAPI(String filePath) async {
+    final uri = Uri.parse("https://fastapi.jp.ngrok.io/voice/verify");
+    final request = http.MultipartRequest('POST', uri);
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    final response = await request.send();
+    final responseBody = await response.stream.bytesToString();
+
+    if (response.statusCode == 200) {
+      final data = json.decode(responseBody);
+      final score = data['match_score'];
+      final shouldRecord = data['should_record'];
+
+      print("✅ 유사도 검사 성공: $score (${shouldRecord ? "같은 사람" : "다른 사람"})");
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("유사도: ${(score * 100).toStringAsFixed(2)}%")),
+        );
+      }
+    } else {
+      print("❌ 유사도 검사 실패 (${response.statusCode})");
+      print("Response: $responseBody");
+    }
+  }
   // ==== 학습 모달 ====
   // Widget _buildLearningModal() {
   //   return Stack(
