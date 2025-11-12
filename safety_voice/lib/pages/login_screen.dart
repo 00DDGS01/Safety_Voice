@@ -79,14 +79,15 @@ class _LoginScreenState extends State<LoginScreen> {
         await TriggerListener.instance.init(navigatorKey);
 
         if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const Home(),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
+        Navigator.pushAndRemoveUntil(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const Home(),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+            (route) => false, // 이전 모든 화면 제거!
+          );
       } else {
         final error = jsonDecode(response.body);
         setState(() {

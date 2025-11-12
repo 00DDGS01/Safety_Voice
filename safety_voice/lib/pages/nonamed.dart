@@ -188,9 +188,20 @@ class _NonamedState extends State<Nonamed> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+@override
+Widget build(BuildContext context) {
+return PopScope(
+  canPop: false,
+  onPopInvoked: (didPop) {
+    if (!didPop) {
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/home', // ← MainScreen으로 이동
+        (route) => false,
+      );
+    }
+  },
+    child: Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
@@ -201,7 +212,11 @@ class _NonamedState extends State<Nonamed> {
           leading: IconButton(
             icon: Image.asset('assets/images/back.png', height: 24),
             onPressed: () {
-              Navigator.pop(context, true); // ← 홈으로 true 전달
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/home', // ← 여기도 동일하게
+                (route) => false,
+              );
             },
           ),
           title: Text(
@@ -214,8 +229,6 @@ class _NonamedState extends State<Nonamed> {
           ),
         ),
       ),
-
-      // 스크롤 기능
       body: Scrollbar(
         child: ListView.builder(
           itemCount: audioFiles.length,
@@ -224,8 +237,9 @@ class _NonamedState extends State<Nonamed> {
           },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // 오디오 파일 컨테이너 생성
   Widget _buildAudioFileContainer(Map<String, dynamic> file) {
