@@ -68,7 +68,7 @@ class TriggerListener {
     _speech.listen(
       onResult: (result) async {
         final transcript = result.recognizedWords.trim();
-        print("🗣️ 인식된 문장: $transcript");
+        print("🗣️ 인식된 문장: ${transcript.replaceAll(' ', '')}");
 
         if (transcript.contains(_triggerWord)) {
           print("🚨 트리거 감지됨! ($_triggerWord)");
