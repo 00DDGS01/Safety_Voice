@@ -105,7 +105,7 @@
 
 ## 🏗 아키텍처
 
-<img width="1039" height="371" alt="image" src="https://github.com/user-attachments/assets/783e36f3-2fa0-46b8-b8f6-5179e4a1b573" />
+<img width="1438" height="511" alt="image" src="https://github.com/user-attachments/assets/2e702823-acf9-4da7-9309-d2abdaa4e0c6" />
 
 
 
