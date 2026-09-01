@@ -12,9 +12,7 @@
 
 ## 🎬 데모
 
-[![시연 영상](https://img.youtube.com/vi/_-Ef5_vuZzU/0.jpg)](https://youtu.be/_-Ef5_vuZzU)
-
-[시연 영상 보기](https://youtu.be/_-Ef5_vuZzU) 
+▶️ [시연 영상 보기](https://youtu.be/_-Ef5_vuZzU)
 
 ---
 
@@ -41,6 +39,9 @@
 정작 갑작스러운 위협 상황에서는 사용할 수 없다는 한계가 있습니다.
 
 **안전한 목소리**는 성폭력·언어폭력·구두 계약 분쟁 등 갑자기 발생하는 위급 상황에서 **가해자가 모르게, 그러나 법적으로 안전하게** 증거를 남길 수 있도록 설계된 서비스입니다.
+
+<br>
+
 <img width="495" height="668" alt="image" src="https://github.com/user-attachments/assets/e970f0d7-1d68-4547-9c45-19213aec5b42" />
 
 
